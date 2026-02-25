@@ -97,7 +97,7 @@ export async function createReturn(
     }
 
     const refundAmount = returnItems.reduce(
-      (sum, item) => sum + item.product.basePrice * item.quantity,
+      (sum, item) => sum + item.price * item.quantity,
       0
     );
 

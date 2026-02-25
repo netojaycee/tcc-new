@@ -46,9 +46,9 @@ export function OrderSummary({ order }: OrderSummaryProps) {
                                 );
 
                                 if (selectedVariant) {
-                                    variantColor = selectedVariant.color;
-                                    variantSize = selectedVariant.size;
-                              variantImage = getVariantImage(selectedVariant);
+                                    variantColor = (selectedVariant as any).color;
+                                    variantSize = (selectedVariant as any).size;
+                                    variantImage = getVariantImage(selectedVariant as any);
                                 }
                             } catch (error) {
                                 console.error("Error parsing variant data:", error);

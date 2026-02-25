@@ -101,8 +101,8 @@ export function CartItemsSection({
               );
 
               if (selectedVariant) {
-                variantColor = selectedVariant.color;
-                variantSize = selectedVariant.size;
+                variantColor = (selectedVariant as any).color;
+                variantSize = (selectedVariant as any).size;
                 variantImage = getVariantImage(selectedVariant);
               }
             } catch (error) {

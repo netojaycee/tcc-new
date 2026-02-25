@@ -26,14 +26,14 @@ export function CartItemComponent({ item }: CartItemComponentProps) {
         removeItem(item.id);
     };
 
-    const subtotal = item.product.price * item.quantity;
+    const subtotal = item.product.basePrice * item.quantity;
 
     return (
         <div className="flex gap-4 py-4 border-b ">
             <div className="relative w-20 h-20 rounded-md overflow-hidden bg-gray-100">
-                {item.product.images && item.product.images.length > 0 ? (
+                {item.product.mainImage ? (
                     <Image
-                        src={item.product.images[0].url}
+                        src={item.product.mainImage}
                         alt={item.product.name}
                         fill
                         className="object-cover"
@@ -49,7 +49,7 @@ export function CartItemComponent({ item }: CartItemComponentProps) {
                 <div>
                     <h3 className="font-medium text-sm">{item.product.name}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                        ${item.product.price.toFixed(2)}
+                        ${item.product.basePrice.toFixed(2)}
                     </p>
                 </div>
 
