@@ -302,7 +302,7 @@ model Payment {
   status                String // pending, succeeded, failed, refunded
   amount                Float
   refundAmount          Float?   @default(0)
-  currency              String   @default("usd")
+  currency              String   @default("cad")
   details               Json? // webhook data, for insights
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt

@@ -3,12 +3,12 @@ import { getCategoriesAction } from "@/lib/actions/category.actions";
 import { navLinks } from "./navLinks";
 
 export default async function DesktopNav() {
-  // Fetch giftbox categories dynamically
   const result = await getCategoriesAction({ limit: 8 });
   const categories = result.success ? result.data : navLinks;
 
+
   return (
-    <div className="hidden lg:flex items-center justify-between mt-2">
+    <div className="hidden lg:flex items-center justify-between mt-4">
       <div className="flex gap-5 items-center">
         <p className="text-sm font-medium tracking-wide text-[#A3A3A3]">Shop</p>
         <p>|</p>

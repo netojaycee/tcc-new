@@ -38,7 +38,7 @@ export interface UseCartReturn {
   appliedPromo: { code: string; discount: number } | null;
 
   // Cart operations
-  addItem: (productId: string, quantity: number) => Promise<boolean>;
+  addItem: (productId: string, variantId: string, quantity: number) => Promise<boolean>;
   updateItem: (itemId: string, quantity: number) => Promise<boolean>;
   removeItem: (itemId: string) => Promise<boolean>;
   clearCart: () => Promise<boolean>;
@@ -134,7 +134,7 @@ export function useCart(): UseCartReturn {
 
         // Calculate totals from items
         const subtotal = cartItems.reduce(
-          (sum: number, item: CartItem) => sum + item.price * item.quantity,
+          (sum: number, item: CartItem) => sum + item.product.basePrice * item.quantity,
           0,
         );
         const itemCount = cartItems.reduce(
@@ -177,11 +177,12 @@ export function useCart(): UseCartReturn {
    * Add item to cart with optimistic update
    */
   const addItem = useCallback(
-    async (productId: string, quantity: number) => {
+    async (productId: string, variantId: string, quantity: number) => {
       try {
         // Server action call
         const result = await addToCartAction({
           productId,
+          variantId,
           quantity,
         });
 

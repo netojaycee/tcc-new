@@ -14,7 +14,7 @@ export const createPaymentIntentSchema = z.object({
   orderId: z.string().min(1, "Order ID required"),
   amount: z.number().positive("Amount must be positive"),
   email: z.string().email("Invalid email"),
-  currency: z.string().default("gbp").optional(), // Support different currencies (gbp for UK, usd for US, etc.)
+  currency: z.string().default("cad").optional(), // Support different currencies (cad for Canada, usd for US, etc.)
 });
 
 export type CreatePaymentIntentInput = z.infer<typeof createPaymentIntentSchema>;
@@ -66,8 +66,8 @@ export const paymentService = {
       // Convert amount to cents (Stripe expects cents)
       const amountInCents = Math.round(validated.amount * 100);
 
-      // Use provided currency or detect from delivery address country, default to gbp
-      const currency = validated.currency || "gbp";
+      // Use provided currency or detect from delivery address country, default to cad
+      const currency = validated.currency || "cad";
 
       // Create payment intent
       const paymentIntent = await stripe.paymentIntents.create({

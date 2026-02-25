@@ -71,6 +71,86 @@ export interface PrintfulCategory {
   title: string;
 }
 
+export interface PrintfulAddress {
+  address1: string;
+  address2?: string;
+  city: string;
+  state_code?: string;
+  state_name?: string;
+  country_code: string;
+  country_name?: string;
+  zip: string;
+}
+
+export interface PrintfulShippingEstimate {
+  id: string;
+  name: string;
+  rate: number;
+  currency: string;
+  transit_time: string;
+  carrier: string;
+}
+
+export interface PrintfulCarrier {
+  id: string;
+  name: string;
+  min_delivery_days: number;
+  max_delivery_days: number;
+}
+
+export interface PrintfulOrderItem {
+  variant_id: string | number;
+  quantity: number;
+  price?: number;
+  files?: Array<{
+    type?: string;
+    url: string;
+  }>;
+}
+
+export interface PrintfulOrderData {
+  recipient: {
+    name?: string;
+    email?: string;
+    address1: string;
+    address2?: string;
+    city: string;
+    state_code?: string;
+    state_name?: string;
+    country_code: string;
+    zip: string;
+  };
+  items: PrintfulOrderItem[];
+  external_id?: string;
+  shipping?: string;
+}
+
+export interface PrintfulOrderResponse {
+  id: string;
+  external_id?: string;
+  status: string;
+  created: number;
+  updated: number;
+  recipient: {
+    name?: string;
+    email?: string;
+    address1: string;
+    city: string;
+    state_code: string;
+    country_code: string;
+    zip: string;
+  };
+  items: PrintfulOrderItem[];
+  shipping: string;
+  costs: {
+    currency: string;
+    subtotal: number;
+    shipping: number;
+    tax: number;
+    total: number;
+  };
+}
+
 export interface PrintfulApiResponse<T> {
   code: number;
   result: T;
@@ -217,13 +297,97 @@ class PrintfulService {
   }
 
   /**
+   * Get available carriers for shipping
+   */
+  async getCarriers(): Promise<PrintfulCarrier[]> {
+    try {
+      const { data } = await this.client.get<
+        PrintfulApiResponse<PrintfulCarrier[]>
+      >("/shipping/carriers");
+      return data.result;
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch carriers from Printful");
+    }
+  }
+
+  /**
+   * Get shipping estimates for an order
+   * This is typically called after creating a draft order
+   */
+  async getShippingEstimates(
+    orderId: string | number,
+  ): Promise<PrintfulShippingEstimate[]> {
+    try {
+      const { data } = await this.client.get<
+        PrintfulApiResponse<PrintfulShippingEstimate[]>
+      >(`/orders/${orderId}/shipping-estimates`);
+      return data.result;
+    } catch (error) {
+      throw this.handleError(
+        error,
+        `Failed to get shipping estimates for order ${orderId}`,
+      );
+    }
+  }
+
+  /**
+   * Create a new order in Printful (after payment confirmed)
+   * Can create as draft first if external_id is provided
+   */
+  async createOrder(
+    orderData: PrintfulOrderData,
+  ): Promise<PrintfulOrderResponse> {
+    try {
+      const { data } = await this.client.post<
+        PrintfulApiResponse<PrintfulOrderResponse>
+      >("/orders", orderData);
+      return data.result;
+    } catch (error) {
+      throw this.handleError(
+        error,
+        "Failed to create order in Printful",
+      );
+    }
+  }
+
+  /**
+   * Get order details from Printful
+   */
+  async getOrder(orderId: string | number): Promise<PrintfulOrderResponse> {
+    try {
+      const { data } = await this.client.get<
+        PrintfulApiResponse<PrintfulOrderResponse>
+      >(`/orders/${orderId}`);
+      return data.result;
+    } catch (error) {
+      throw this.handleError(
+        error,
+        `Failed to fetch order ${orderId} from Printful`,
+      );
+    }
+  }
+
+  /**
    * Handle and standardize errors
    */
   private handleError(error: unknown, defaultMessage: string): never {
     if (axios.isAxiosError(error)) {
-      const message =
-        error.response?.data?.message || error.message || defaultMessage;
+      // Get detailed error info from Printful API response
+      const responseData = error.response?.data;
+      let message = error.response?.data?.message || error.message || defaultMessage;
+      
+      // Include full error details if available
+      if (responseData?.errors) {
+        message += ` | Details: ${JSON.stringify(responseData.errors)}`;
+      }
+      
       const status = error.response?.status || 500;
+      
+      // Log full response for debugging
+      if (status === 400) {
+        console.error("Printful 400 Response:", JSON.stringify(responseData, null, 2));
+      }
+      
       throw new Error(`[Printful API Error - ${status}] ${message}`);
     }
 

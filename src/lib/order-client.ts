@@ -62,7 +62,7 @@ export function getOrderSummary(order: any): {
 export function formatOrderTotal(total: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "CAD",
   }).format(total);
 }
 
@@ -137,7 +137,7 @@ export function buildOrderEmailContent(order: any): {
   html: string;
 } {
   const itemList = order.items
-    ?.map((item: any) => `- ${item.product.name} (${item.quantity}x) $${item.price}`)
+    ?.map((item: any) => `- ${item.product.name} (${item.quantity}x) $${item.product.basePrice}`)
     .join("\n") || "";
 
   const subject = `Order Confirmation #${order.orderNumber}`;
@@ -159,7 +159,7 @@ Thank you for your order!
     <p><strong>Total:</strong> ${formatOrderTotal(order.total)}</p>
     <h3>Items:</h3>
     <ul>
-      ${order.items?.map((item: any) => `<li>${item.product.name} (${item.quantity}x) $${item.price}</li>`).join("") || ""}
+      ${order.items?.map((item: any) => `<li>${item.product.name} (${item.quantity}x) $${item.product.basePrice}</li>`).join("") || ""}
     </ul>
     <p>Thank you for your order!</p>
   `.trim();

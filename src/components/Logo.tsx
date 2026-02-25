@@ -8,8 +8,8 @@ export default function Logo() {
       <Image
         src={"/logo.png"}
         alt='Logo'
-        width={67}
-        height={73}
+        width={104}
+        height={34}
         className='object-cover hidden md:block'
         quality={75}
       />

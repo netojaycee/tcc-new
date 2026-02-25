@@ -7,8 +7,6 @@ import Link from "next/link";
 interface OrderSummaryProps {
   subtotal: number;
   discountAmount?: number;
-  tax?: number;
-  shipping?: number;
   total?: number;
   selectedItemsCount: number;
   totalItems: number;
@@ -20,8 +18,6 @@ interface OrderSummaryProps {
 export function OrderSummaryCart({
   subtotal,
   discountAmount = 0,
-  tax,
-  shipping,
   total,
   selectedItemsCount,
   totalItems,
@@ -32,8 +28,6 @@ export function OrderSummaryCart({
   const router = useRouter();
 
   // Calculate values if not provided
-  const calculatedTax = tax ?? 0; // Tax will be calculated at checkout based on delivery address
-  const calculatedShipping = shipping ?? 0; // Shipping will be calculated at checkout
   const calculatedTotal = total ?? (subtotal - discountAmount);
 
   const canCheckout = selectedItemsCount > 0 && !isLoading;
@@ -65,7 +59,10 @@ export function OrderSummaryCart({
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Subtotal</span>
           <span className="font-semibold text-gray-900">
-            £{subtotal.toFixed(2)}
+            {new Intl.NumberFormat("en-CA", {
+              style: "currency",
+              currency: "CAD",
+            }).format(subtotal)}
           </span>
         </div>
 
@@ -75,7 +72,12 @@ export function OrderSummaryCart({
               Discount {isPromoApplied && "✓"}
             </span>
             <span className="font-semibold text-green-600">
-              -£{discountAmount.toFixed(2)}
+                {new Intl.NumberFormat("en-CA", {
+                  style: "currency",
+                  currency: "CAD",
+                }).format(-discountAmount)}
+              {/* -£{discountAmount.toFixed(2)} */}
+              {/* -£{discountAmount.toFixed(2)} */}
             </span>
           </div>
         )}
@@ -91,7 +93,10 @@ export function OrderSummaryCart({
           Total
         </span>
         <span className="text-2xl md:text-3xl font-bold text-gray-900">
-          £{calculatedTotal.toFixed(2)}
+          {new Intl.NumberFormat("en-CA", {
+            style: "currency",
+            currency: "CAD",
+          }).format(calculatedTotal)}
         </span>
       </div>
 

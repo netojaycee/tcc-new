@@ -82,10 +82,13 @@ export function ProductCard({ product }: ProductCardProps) {
 
           {/* Price */}
           <p className="text-lg font-bold text-gray-900 pt-1">
-            ${product.basePrice.toFixed(2)}
+            {new Intl.NumberFormat("en-CA", {
+              style: "currency",
+              currency: "CAD",
+            }).format(product.basePrice)}
           </p>
 
-          <AddToCartButton productId={product.id} />
+          {/* <AddToCartButton productId={product.id} /> */}
         </div>
       </div>
     </Link>

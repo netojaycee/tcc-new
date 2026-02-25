@@ -91,7 +91,12 @@ function OrderConfirmationContent() {
               </div>
               <div>
                 <p className="text-muted-foreground">Total</p>
-                <p className="font-medium">£{order.total?.toFixed(2)}</p>
+                <p className="font-medium">
+                  {new Intl.NumberFormat("en-CA", {
+                    style: "currency",
+                    currency: "CAD",
+                  }).format(order.total)}
+                </p>
               </div>
               <div>
                 <p className="text-muted-foreground">Email</p>
@@ -113,7 +118,13 @@ function OrderConfirmationContent() {
                     <span>
                       {item.product?.name || "Item"} x {item.quantity}
                     </span>
-                    <span>£{(item.price * item.quantity).toFixed(2)}</span>
+                    <span>
+                      {" "}
+                      {new Intl.NumberFormat("en-CA", {
+                        style: "currency",
+                        currency: "CAD",
+                      }).format(item.product.basePrice * item.quantity)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -124,18 +135,35 @@ function OrderConfirmationContent() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>£{order.subtotal?.toFixed(2)}</span>
+                  <span>
+                    {" "}
+                    {new Intl.NumberFormat("en-CA", {
+                      style: "currency",
+                      currency: "CAD",
+                    }).format(order.subtotal)}
+                  </span>
                 </div>
                 {order.discountAmount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Discount</span>
-                    <span className="text-green-600">-£{order.discountAmount?.toFixed(2)}</span>
+                    <span className="text-green-600">
+                      -
+                      {new Intl.NumberFormat("en-CA", {
+                        style: "currency",
+                        currency: "CAD",
+                      }).format(order.discountAmount)}
+                    </span>
                   </div>
                 )}
                 {order.tax > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tax</span>
-                    <span>£{order.tax?.toFixed(2)}</span>
+                    <span>
+                      {new Intl.NumberFormat("en-CA", {
+                        style: "currency",
+                        currency: "CAD",
+                      }).format(order.tax)}
+                    </span>
                   </div>
                 )}
                 {order.shippingFee >= 0 && (
@@ -145,14 +173,22 @@ function OrderConfirmationContent() {
                       {order.shippingFee === 0 ? (
                         <span className="text-green-600">Free</span>
                       ) : (
-                        `£${order.shippingFee?.toFixed(2)}`
+                        new Intl.NumberFormat("en-CA", {
+                          style: "currency",
+                          currency: "CAD",
+                        }).format(order.shippingFee)
                       )}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between font-semibold border-t pt-2">
                   <span>Total</span>
-                  <span>£{order.total?.toFixed(2)}</span>
+                  <span>
+                    {new Intl.NumberFormat("en-CA", {
+                      style: "currency",
+                      currency: "CAD",
+                    }).format(order.total)}
+                  </span>
                 </div>
               </div>
             </div>

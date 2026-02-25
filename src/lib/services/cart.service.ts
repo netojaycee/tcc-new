@@ -9,9 +9,18 @@ export type CartResult<T> =
   | { success: true; data: T }
   | { success: false; error: string; code: string };
 
+export interface ShippingAddress {
+  street: string;
+  city: string;
+  state?: string;
+  zip: string;
+  country: string;
+}
+
 // Validation Schemas
 export const addToCartSchema = z.object({
   productId: z.string().min(1, "Product ID required"),
+  variantId: z.string().min(1, "Variant ID required"),
   quantity: z.number().int().positive("Quantity must be positive"),
 });
 
@@ -78,6 +87,47 @@ async function getOrCreateCart(
   return cart;
 }
 
+// Helper: Calculate tax based on delivery address country
+function calculateTax(subtotal: number, country: string): number {
+  const taxRates: Record<string, number> = {
+    "united kingdom": 0.2, // UK VAT 20%
+    uk: 0.2,
+    "united states": 0.0, // US: varies by state, for now 0 (apply state tax separately if needed)
+    us: 0.0,
+    usa: 0.0,
+    canada: 0.05, // Canada: GST 5% (provinces add PST)
+    australia: 0.1, // Australia: GST 10%
+  };
+
+  const normalized = country.toLowerCase().trim();
+  const taxRate = taxRates[normalized] || 0;
+
+  return Math.round(subtotal * taxRate * 100) / 100;
+}
+
+// Helper: Calculate shipping fee based on subtotal and country
+function calculateShipping(subtotal: number, country: string): number {
+
+  // Free shipping on orders over £50
+  if (subtotal >= 50) {
+    return 0;
+  }
+
+  // Shipping rates by region
+  const shippingRates: Record<string, number> = {
+    "united kingdom": 4.99,
+    uk: 4.99,
+    "united states": 9.99,
+    us: 9.99,
+    usa: 9.99,
+    canada: 14.99,
+    australia: 19.99,
+  };
+
+  const normalized_lower = country.toLowerCase().trim();
+  return shippingRates[normalized_lower] || 9.99; // Default to $9.99
+}
+
 export const cartService = {
   // ============ READ OPERATIONS ============
 
@@ -107,9 +157,24 @@ export const cartService = {
       where: userId ? { userId } : { sessionId: sessionId! },
       include: {
         items: {
-          include: {
+          select: {
+            id: true,
+            cartId: true,
+            productId: true,
+            quantity: true,
+            price: true,
+            variantId: true,
+            createdAt: true,
+            updatedAt: true,
             product: {
-              select: { id: true, name: true, basePrice: true, gallery: true },
+              select: { 
+                id: true, 
+                name: true, 
+                basePrice: true, 
+                mainImage: true,
+                gallery: true,
+                variants: true, // Include variants JSON to get variant preview images
+              },
             },
           },
         },
@@ -131,6 +196,8 @@ export const cartService = {
 
   /**
    * Add item to cart (or increase quantity if exists)
+   * Note: productId can be either a database product ID or a Printful variant ID (numeric string)
+   * When from product variants, it's the Printful variantId (e.g., "5147976736")
    */
   async addToCart(
     data: AddToCartInput,
@@ -148,34 +215,12 @@ export const cartService = {
 
       const validated = addToCartSchema.parse(data);
 
-      // Verify product exists and has stock
-      const product = await prisma.product.findUnique({
-        where: { id: validated.productId },
-        select: { id: true, basePrice: true },
-      });
-
-      if (!product) {
-        return {
-          success: false,
-          error: "Product not found",
-          code: "PRODUCT_NOT_FOUND",
-        };
-      }
-
-      // if (product.availableQuantity < validated.quantity) {
-      //   return {
-      //     success: false,
-      //     error: `Only ${product.availableQuantity} in stock`,
-      //     code: "INSUFFICIENT_STOCK",
-      //   };
-      // }
-
-      // Get or create cart
+      // Get or create cart first
       const cart = await getOrCreateCart(userId, sessionId);
 
-      // Check if product already in cart
+      // Check if product+variant combination already in cart
       const existingItem = cart.items.find(
-        (item: any) => item.productId === validated.productId,
+        (item: any) => item.productId === validated.productId && item.variantId === validated.variantId,
       );
 
       let cartItem;
@@ -183,27 +228,20 @@ export const cartService = {
         // Update quantity
         const newQuantity = existingItem.quantity + validated.quantity;
 
-        // if (product.availableQuantity < newQuantity) {
-        //   return {
-        //     success: false,
-        //     error: `Only ${product.availableQuantity} in stock`,
-        //     code: "INSUFFICIENT_STOCK",
-        //   };
-        // }
-
         cartItem = await prisma.cartItem.update({
           where: { id: existingItem.id },
           data: { quantity: newQuantity },
           include: { product: true },
         });
       } else {
-        // Create new cart item
+        // Create new cart item with both productId and variantId
         cartItem = await prisma.cartItem.create({
           data: {
             cartId: cart.id,
             productId: validated.productId,
+            variantId: validated.variantId, // Printful variant ID (e.g., "5147976736")
             quantity: validated.quantity,
-            price: product.basePrice,
+            price: 0, // Price will be determined from Printful or product data during checkout
           },
           include: { product: true },
         });
@@ -519,7 +557,7 @@ export const cartService = {
 
     // Calculate subtotal
     const subtotal = cart.items.reduce(
-      (sum: number, item: any) => sum + item.price * item.quantity,
+      (sum: number, item: any) => sum + item.product.basePrice * item.quantity,
       0,
     );
 
@@ -694,6 +732,112 @@ export const cartService = {
         success: false,
         error: "Failed to validate checkout",
         code: "VALIDATION_ERROR",
+      };
+    }
+  },
+
+  /**
+   * Calculate totals with address (includes tax + estimated shipping)
+   * Returns detailed breakdown for checkout display
+   */
+  async calculateTotalsWithAddress(
+    userId: string | undefined,
+    address: ShippingAddress,
+    promoCode?: string,
+    sessionId?: string,
+  ): Promise<CartResult<any>> {
+    try {
+      if (!userId && !sessionId) {
+        return {
+          success: false,
+          error: "User ID or Session ID required",
+          code: "INVALID_CONTEXT",
+        };
+      }
+
+      const cart = await this.getCart(sessionId, userId);
+
+      if (!cart || cart.items.length === 0) {
+        return {
+          success: false,
+          error: "Your cart is empty",
+          code: "EMPTY_CART",
+        };
+      }
+
+      // Calculate subtotal
+      const subtotal = cart.items.reduce(
+        (sum: number, item: any) => sum + item.product.basePrice * item.quantity,
+        0,
+      );
+
+      // Check for promo discount
+      let discount = 0;
+      if (promoCode) {
+        const promo = await prisma.promoCode.findUnique({
+          where: { code: promoCode.toUpperCase() },
+        });
+
+        if (promo && promo.active) {
+          const now = new Date();
+          if (!promo.expiry || promo.expiry > now) {
+            if (promo.minOrder === null || subtotal >= promo.minOrder) {
+              if (promo.type === "percent") {
+                discount = (subtotal * promo.value) / 100;
+              } else if (promo.type === "fixed") {
+                discount = promo.value;
+              }
+            }
+          }
+        }
+      }
+
+      const discountedSubtotal = subtotal - discount;
+
+      // Calculate tax based on address country
+      const tax = calculateTax(discountedSubtotal, address.country);
+
+      // Calculate shipping based on address country (estimate)
+      const shipping = calculateShipping(discountedSubtotal, address.country);
+
+      // Calculate total
+      const total = discountedSubtotal + tax + shipping;
+
+      return {
+        success: true,
+        data: {
+          subtotal: Math.round(subtotal * 100) / 100,
+          tax: Math.round(tax * 100) / 100,
+          shipping: Math.round(shipping * 100) / 100,
+          discount: Math.round(discount * 100) / 100,
+          total: Math.round(total * 100) / 100,
+          itemCount: cart.items.reduce(
+            (sum: number, item: any) => sum + item.quantity,
+            0,
+          ),
+          items: cart.items.map((item: any) => ({
+            id: item.id,
+            productId: item.productId,
+            product: {
+              id: item.product.id,
+              name: item.product.name,
+              basePrice: item.product.basePrice,
+              gallery: item.product.gallery,
+            },
+            quantity: item.quantity,
+            price: item.product.basePrice,
+            variantId: item.variantId,
+            customData: item.customData,
+            lineTotal: item.product.basePrice * item.quantity,
+          })),
+        },
+      };
+    } catch (error) {
+      console.error("Calculate totals with address error:", error);
+      return {
+        success: false,
+        error: "Failed to calculate totals",
+        code: "CALCULATION_ERROR",
       };
     }
   },

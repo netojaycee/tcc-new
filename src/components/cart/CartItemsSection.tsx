@@ -3,6 +3,11 @@
 import Image from "next/image";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCartStore, CartItem } from "@/stores/cart.store";
+import {
+  getVariantImage,
+  variantMatchesId,
+  variantsFromUnknown,
+} from "@/lib/utils/variant";
 
 interface CartItemsSectionProps {
   items: CartItem[];
@@ -54,6 +59,8 @@ export function CartItemsSection({
     }
   };
 
+  console.log("CartItemsSection - items:", items);
+
   return (
     <div className="bg-white rounded border">
       {/* Header with Select All */}
@@ -78,7 +85,33 @@ export function CartItemsSection({
       <div className="space-y-3 p-2 md:p-4">
         {items.map((item) => {
           const isSelected = selectedItems.has(item.id);
-          const subtotal = item.price * item.quantity;
+          const subtotal = item.product.basePrice * item.quantity;
+
+          // Extract variant preview image if variant is selected
+          let variantImage: string | undefined;
+          let variantColor: string | undefined;
+          let variantSize: string | undefined;
+
+          if (item.variantId && item.product.variants) {
+            try {
+              const variants = variantsFromUnknown(item.product.variants);
+
+              const selectedVariant = variants.find(
+                (v: any) => variantMatchesId(v, item.variantId),
+              );
+
+              if (selectedVariant) {
+                variantColor = selectedVariant.color;
+                variantSize = selectedVariant.size;
+                variantImage = getVariantImage(selectedVariant);
+              }
+            } catch (error) {
+              console.error("Error parsing variant data:", error);
+            }
+          }
+
+          // Use variant image if available, otherwise fall back to product main image
+          const displayImage = variantImage || item.product.mainImage;
 
           return (
             <div
@@ -97,11 +130,11 @@ export function CartItemsSection({
                 className="w-3 h-3 rounded border-gray-300 cursor-pointer mt-1 shrink-0"
               />
 
-              {/* Product Image */}
+              {/* Product Image (Variant Preview) */}
               <div className="relative w-20 h-20 rounded overflow-hidden bg-gray-100 shrink-0">
-                {item.product.images && item.product.images.length > 0 ? (
+                {displayImage ? (
                   <Image
-                    src={item.product.images[0].url}
+                    src={displayImage}
                     alt={item.product.name}
                     fill
                     className="object-contain p-1"
@@ -121,8 +154,14 @@ export function CartItemsSection({
                     <h3 className="font-semibold text-gray-900 text-sm md:text-base line-clamp-1">
                       {item.product.name}
                     </h3>
+                    {/* Show variant details if available */}
+                    {(variantColor || variantSize) && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {[variantColor, variantSize].filter(Boolean).join(" • ")}
+                      </p>
+                    )}
                     <p className="text-lg font-bold text-gray-900 mt-1">
-                      ${item.product.price.toFixed(2)}
+                      ${item.product.basePrice.toFixed(2)}
                     </p>
                   </div>
                   <button

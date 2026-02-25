@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession, getOrCreateGuestSession } from "@/lib/auth";
-import { cartService, AddToCartInput, UpdateCartItemInput } from "@/lib/services/cart.service";
+import {
+  cartService,
+  AddToCartInput,
+  UpdateCartItemInput,
+  ShippingAddress,
+} from "@/lib/services/cart.service";
 
 // ============ READ ACTIONS ============
 
@@ -41,6 +46,7 @@ export async function getCartAction() {
 /**
  * Add item to cart
  * Creates guest session if needed for guests
+ * Now uses variantId (Printful variant ID) instead of productId
  */
 export async function addToCartAction(input: AddToCartInput) {
   try {
@@ -48,6 +54,7 @@ export async function addToCartAction(input: AddToCartInput) {
     const validated = z
       .object({
         productId: z.string().min(1, "Product ID required"),
+        variantId: z.string().min(1, "Variant ID required"),
         quantity: z.number().int().positive("Quantity must be positive"),
       })
       .safeParse(input);
@@ -352,6 +359,88 @@ export async function validateCheckoutAction() {
       success: false,
       error: "Failed to validate checkout",
       code: "VALIDATION_ERROR",
+    };
+  }
+}
+
+/**
+ * Calculate cart totals with shipping address
+ * Called during checkout when user provides delivery address
+ * Returns tax, shipping, and final total for display before payment
+ */
+export async function calculateCheckoutCostsAction(input: {
+  street: string;
+  city: string;
+  state?: string;
+  zip: string;
+  country: string;
+  promoCode?: string;
+}) {
+  try {
+    const session = await getSession();
+
+    if (!session) {
+      return {
+        success: false,
+        error: "Unauthorized",
+        code: "UNAUTHORIZED",
+      };
+    }
+
+    // Validate address
+    const validated = z
+      .object({
+        street: z.string().min(1, "Street required"),
+        city: z.string().min(1, "City required"),
+        state: z.string().optional(),
+        zip: z.string().min(1, "ZIP code required"),
+        country: z.string().min(1, "Country required"),
+        promoCode: z.string().optional(),
+      })
+      .parse(input);
+
+    let userId: string | undefined;
+    let sessionId: string | undefined;
+
+    if ("userId" in session) {
+      userId = session.userId;
+    } else if (session.isGuest) {
+      sessionId = session.sessionId;
+    } else {
+      return {
+        success: false,
+        error: "Invalid session",
+        code: "INVALID_SESSION",
+      };
+    }
+
+    const result = await cartService.calculateTotalsWithAddress(
+      userId,
+      {
+        street: validated.street,
+        city: validated.city,
+        state: validated.state,
+        zip: validated.zip,
+        country: validated.country,
+      },
+      validated.promoCode,
+      sessionId,
+    );
+
+    return result;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: error.issues[0].message,
+        code: "VALIDATION_ERROR",
+      };
+    }
+    console.error("Calculate checkout costs error:", error);
+    return {
+      success: false,
+      error: "Failed to calculate checkout costs",
+      code: "CALCULATION_ERROR",
     };
   }
 }

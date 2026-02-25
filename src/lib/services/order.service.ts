@@ -18,6 +18,8 @@ export const createOrderSchema = z.object({
         productId: z.string().min(1),
         quantity: z.number().int().positive(),
         price: z.number().positive(),
+        variantId: z.string().optional(), // Printful variant ID
+        customData: z.any().optional(), // Customization data
       }),
     )
     .min(1, "Cart cannot be empty"),
@@ -173,7 +175,20 @@ export const orderService = {
       const order = await prisma.order.findUnique({
         where: { id: orderId },
         include: {
-          items: { include: { product: true } },
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  basePrice: true,
+                  mainImage: true,
+                  gallery: true,
+                  variants: true, // Include variants JSON for Printful files
+                },
+              },
+            },
+          },
           promoCode: true,
           payment: true,
         },
@@ -296,6 +311,8 @@ export const orderService = {
               productId: item.productId,
               quantity: item.quantity,
               price: item.price,
+              variantId: item.variantId,
+              customData: item.customData,
             })),
           },
         },
@@ -401,6 +418,64 @@ export const orderService = {
       return {
         success: false,
         error: "Failed to set payment intent",
+        code: "UPDATE_ERROR",
+      };
+    }
+  },
+
+  /**
+   * Set Printful order ID and status on order (after payment)
+   */
+  async setPrintfulOrder(
+    orderId: string,
+    printfulOrderId: string,
+    printfulStatus: string = "draft",
+  ): Promise<OrderResult<any>> {
+    try {
+      const order = await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          printfulOrderId,
+          printfulStatus,
+          lastPrintfulSync: new Date(),
+        },
+        include: { items: { include: { product: true } } },
+      });
+
+      return { success: true, data: order };
+    } catch (error) {
+      console.error("Set Printful order error:", error);
+      return {
+        success: false,
+        error: "Failed to set Printful order",
+        code: "UPDATE_ERROR",
+      };
+    }
+  },
+
+  /**
+   * Update Printful status (synced from Printful webhook)
+   */
+  async updatePrintfulStatus(
+    orderId: string,
+    printfulStatus: string,
+  ): Promise<OrderResult<any>> {
+    try {
+      const order = await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          printfulStatus,
+          lastPrintfulSync: new Date(),
+        },
+        include: { items: { include: { product: true } } },
+      });
+
+      return { success: true, data: order };
+    } catch (error) {
+      console.error("Update Printful status error:", error);
+      return {
+        success: false,
+        error: "Failed to update Printful status",
         code: "UPDATE_ERROR",
       };
     }

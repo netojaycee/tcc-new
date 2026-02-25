@@ -8,12 +8,12 @@ export default function UserLayout({
 }>) {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* <Header /> */}
+      <Header />
       {/* p-4 md:px-16 md:py-8 */}
-      <main className="flex-1 max-w-7xl mx-auto w-full">
+      <main className="flex-1 max-w-7xl mx-auto w-full py-4">
         {children}
       </main>
-      {/* <Footer /> */}
+      <Footer />
     </div>
   );
 }

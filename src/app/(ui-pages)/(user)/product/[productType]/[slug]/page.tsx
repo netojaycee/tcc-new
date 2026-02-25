@@ -6,10 +6,9 @@ import {
 import { getProductReviewsAction } from "@/lib/actions/review.actions";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { AddToCartButton } from "@/components/product/AddToCartButton";
 import { ProductCard } from "@/components/product/ProductCard";
-import { ProductGallery } from "@/components/product/ProductGallery";
 import { ReviewsSection } from "@/components/product/ReviewsSection";
+import { ProductDetailsGrid } from "@/components/product/ProductDetailsGrid";
 import { Star } from "lucide-react";
 import {
   Accordion,
@@ -35,6 +34,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
   }
 
   const product = result.data;
+
+  console.log(product, "product");
 
   // Fetch real reviews
   const reviewsResult = await getProductReviewsAction(product.id, 10, 0);
@@ -98,121 +99,111 @@ export default async function ProductPage({ params }: ProductPageProps) {
   return (
     <div className="bg-white">
       <div className="px-4 py-4 lg:px-16 md:py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Product Images - Column 1 */}
-          <div>
-            <ProductGallery images={product.gallery || []} />
-          </div>
-
-          {/* Product Details - Column 2 */}
-          <div className="flex flex-col gap-3">
-            {/* Product Header */}
-            <div>
-              {/* <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <Badge variant="secondary" className="text-xs">
-                  +{product.type?.toUpperCase()}
-                </Badge>
-                {product.discountPercentage && (
-                  <Badge variant="destructive" className="text-xs">
-                    {Math.round(product.discountPercentage)}% OFF
+        <ProductDetailsGrid
+          productId={product.id}
+          variants={product.variants as any}
+          defaultGalleryImages={product.gallery || []}
+          detailsContent={
+            <>
+              {/* Product Header */}
+              <div>
+                {/* <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <Badge variant="secondary" className="text-xs">
+                    +{product.type?.toUpperCase()}
                   </Badge>
-                )}
-              </div> */}
+                  {product.discountPercentage && (
+                    <Badge variant="destructive" className="text-xs">
+                      {Math.round(product.discountPercentage)}% OFF
+                    </Badge>
+                  )}
+                </div> */}
 
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-                {product.name}
-              </h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+                  {product.name}
+                </h1>
 
-              {/* Rating and Sales */}
-              <div className="flex items-center gap-3 mb-2">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      size={16}
-                      className={
-                        i < Math.floor(product.avgRating || 0)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
-                      }
-                    />
-                  ))}
-                </div>
-                <span className="text-xs md:text-sm text-gray-600">
-                  ({product.soldCount || 0}+ sold)
-                </span>
-              </div>
-            </div>
-
-            {/* What's Included */}
-            <Accordion
-              type="single"
-              collapsible
-              className="bg-[#E5E5E5]/30 p-2"
-            >
-              <AccordionItem value="included" className="border-0">
-                <AccordionTrigger className="py-3 underline underline-offset-3 text-gray-900 font-semibold">
-                  What&apos;s included?
-                </AccordionTrigger>
-                <AccordionContent className="pb-4 ">
-                  <ul className="space-y-2">
-                    {whatIncluded.map((item: string, idx: number) => (
-                      <li
-                        key={idx}
-                        className="text-sm text-gray-700 flex items-start gap-2"
-                      >
-                        <span className="text-gray-400">•</span>
-                        {item}
-                      </li>
+                {/* Rating and Sales */}
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        size={16}
+                        className={
+                          i < Math.floor(product.avgRating || 0)
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-300"
+                        }
+                      />
                     ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-
-            {/* Price */}
-            <div>
-              <div className="flex items-baseline gap-2 mb-2 border-t border-b">
-                <span className="text-2xl md:text-3xl font-bold text-gray-900">
-                  ${product.basePrice.toFixed(2)}
-                </span>
-                {product.discountPercentage && (
-                  <span className="text-sm md:text-base text-gray-500 line-through">
-                    $
-                    {(
-                      product.basePrice /
-                      (1 - (product.discountPercentage || 0) / 100)
-                    ).toFixed(2)}
+                  </div>
+                  <span className="text-xs md:text-sm text-gray-600">
+                    ({product.soldCount || 0}+ sold)
                   </span>
+                </div>
+              </div>
+
+              {/* What's Included */}
+              <Accordion
+                type="single"
+                collapsible
+                className="bg-[#E5E5E5]/30 p-2"
+              >
+                <AccordionItem value="included" className="border-0">
+                  <AccordionTrigger className="py-3 underline underline-offset-3 text-gray-900 font-semibold">
+                    What&apos;s included?
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 ">
+                    <ul className="space-y-2">
+                      {whatIncluded.map((item: string, idx: number) => (
+                        <li
+                          key={idx}
+                          className="text-sm text-gray-700 flex items-start gap-2"
+                        >
+                          <span className="text-gray-400">•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              {/* Price */}
+              <div>
+                <div className="flex items-baseline gap-2 mb-2 border-t border-b">
+                  <span className="text-2xl md:text-3xl font-bold text-gray-900">
+                    ${product.basePrice.toFixed(2)}
+                  </span>
+                  {product.discountPercentage && (
+                    <span className="text-sm md:text-base text-gray-500 line-through">
+                      $
+                      {(
+                        product.basePrice /
+                        (1 - (product.discountPercentage || 0) / 100)
+                      ).toFixed(2)}
+                    </span>
+                  )}
+                </div>
+                {product.discountPercentage && product.discountExpiry && (
+                  <p className="text-xs text-red-600">
+                    Discount expires:{" "}
+                    {new Date(product.discountExpiry).toLocaleDateString()}
+                  </p>
                 )}
               </div>
-              {product.discountPercentage && product.discountExpiry && (
-                <p className="text-xs text-red-600">
-                  Discount expires:{" "}
-                  {new Date(product.discountExpiry).toLocaleDateString()}
-                </p>
-              )}
-            </div>
-
-            {/* Viewing Info */}
-            {/* <div className="text-xs text-gray-600">
-              40 people are currently viewing this package
-            </div> */}
-
-            {/* Add to Cart Button */}
-            <AddToCartButton productId={product.id} />
-            <ReviewsSection
-              averageRating={product.avgRating || 0}
-              reviewCount={product.reviewCount || 0}
-              reviews={reviews as any}
-            />
-          </div>
-        </div>
-
+            </>
+          }
+        />
         {/* Reviews Section */}
+        <ReviewsSection
+          averageRating={product.avgRating || 0}
+          reviewCount={product.reviewCount || 0}
+          reviews={reviews as any}
+        />
         {/* Additional Info Accordions */}
         <div className="mt-8 space-y-3">
-          <Accordion type="single" collapsible className="bg-[#E5E5E5]/30 p-2">
+          <Accordion type="single" collapsible className="bg-[#E5E5E5]/30 p-2" defaultValue="perfect">
             <AccordionItem value="perfect" className="">
               <AccordionTrigger className="px-4 py-3 underline underline-offset-3">
                 Perfect For?
@@ -233,7 +224,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </AccordionItem>
           </Accordion>
 
-          <Accordion type="single" collapsible className="bg-[#E5E5E5]/30 p-2">
+          <Accordion type="single" collapsible className="bg-[#E5E5E5]/30 p-2" defaultValue="why">
             <AccordionItem value="why" className="">
               <AccordionTrigger className="px-4 py-3 underline underline-offset-3">
                 Why Choose this Package?
@@ -254,7 +245,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </AccordionItem>
           </Accordion>
 
-          <Accordion type="single" collapsible className="bg-[#E5E5E5]/30 p-2">
+          <Accordion type="single" collapsible className="bg-[#E5E5E5]/30 p-2" defaultValue="delivery">
             <AccordionItem value="delivery" className="">
               <AccordionTrigger className="px-4 py-3 underline underline-offset-3">
                 Delivery

@@ -59,7 +59,7 @@ export default function CartPage() {
   const selectedItems = items.filter((item) => selectedItemIds.has(item.id));
 
   const selectedSubtotal = selectedItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + item.product.basePrice * item.quantity,
     0,
   );
 
@@ -68,14 +68,7 @@ export default function CartPage() {
       ? selectedSubtotal * (appliedPromo.discount / 100)
       : 0;
 
-  const selectedTax =
-    Math.round((selectedSubtotal - selectedDiscount) * 0.1 * 100) / 100;
-
-  const selectedShipping =
-    selectedSubtotal >= 50 || selectedItems.length === 0 ? 0 : 4.99;
-
-  const selectedTotal =
-    selectedSubtotal - selectedDiscount + selectedTax + selectedShipping;
+  const selectedTotal = selectedSubtotal - selectedDiscount;
 
   // Loading state
   if (loading) {
@@ -166,8 +159,6 @@ export default function CartPage() {
             <OrderSummaryCart
               subtotal={selectedSubtotal}
               discountAmount={selectedDiscount}
-              tax={selectedTax}
-              shipping={selectedShipping}
               total={selectedTotal}
               selectedItemsCount={selectedItems.length}
               totalItems={items.length}

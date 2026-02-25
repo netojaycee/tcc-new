@@ -28,7 +28,7 @@ export default function MobileFooter() {
   };
 
   return (
-    <footer className="bg-black text-white py-8">
+    <footer className="bg-[#374151] text-white py-8">
       <div className="container mx-auto px-4">
         {/* Logo */}
         <div className="mb-6">

@@ -20,7 +20,7 @@ export function calculateCartTotals(cart: any): {
   }
 
   const subtotal = cart.items.reduce(
-    (sum: number, item: any) => sum + (item.price * item.quantity),
+    (sum: number, item: any) => sum + (item.product.basePrice * item.quantity),
     0
   );
 
@@ -37,7 +37,7 @@ export function calculateCartTotals(cart: any): {
 export function formatPrice(price: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "CAD",
   }).format(price);
 }
 
@@ -106,7 +106,7 @@ export function prepareCartForCheckout(cart: any): {
   const cartItems = cart.items.map((item: any) => ({
     productId: item.productId,
     quantity: item.quantity,
-    price: item.price,
+    price: item.product.basePrice,
   }));
 
   return {

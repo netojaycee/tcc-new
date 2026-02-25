@@ -10,10 +10,10 @@ import { Heart, Gift } from "lucide-react";
 
 export default function Header() {
   return (
-    <div className="py-2 px-4 lg:px-16">
+    <div className="py-3 px-4 lg:px-16">
       <div className="">
         {/* Top Header: Logo, Search, and Icons */}
-        <div className="flex items-center justify-between gap-4 md:gap-6">
+        <div className="flex items-center justify-between gap-4 md:gap-6 ">
           {/* Mobile Menu + Logo */}
           <div className="flex items-center gap-4 md:gap-6 min-w-0">
             <LogoSection />
@@ -29,14 +29,14 @@ export default function Header() {
           </div>
           
            {/* Wishlist Icon */}
-            <button className="transition-all hover:text-primary duration-300 hover:scale-110 shrink-0">
+            {/* <button className="transition-all hover:text-primary duration-300 hover:scale-110 shrink-0">
               <Heart className="w-6 h-6" />
-            </button>
+            </button> */}
 
             {/* Gift Icon */}
-            <button className="transition-all hover:text-primary duration-300 hover:scale-110 shrink-0">
+            {/* <button className="transition-all hover:text-primary duration-300 hover:scale-110 shrink-0">
               <Gift className="w-6 h-6" />
-            </button>
+            </button> */}
 
             {/* Cart Icon */}
             <Cart />

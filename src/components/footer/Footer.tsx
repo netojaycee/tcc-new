@@ -3,7 +3,7 @@ import DesktopFooter from "./DesktopFooter";
 
 export default function Footer() {
   return (
-    <>
+    <div>
       {/* Show MobileFooter on mobile (hidden on md and above) */}
       <div className='md:hidden'>
         <MobileFooter />
@@ -12,6 +12,6 @@ export default function Footer() {
       <div className='hidden md:block'>
         <DesktopFooter />
       </div>
-    </>
+    </div>
   );
 }

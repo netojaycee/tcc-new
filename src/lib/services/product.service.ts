@@ -129,12 +129,12 @@ export const productService = {
   async getProductByIdentifier(identifier: string): Promise<any | null> {
     const cacheKey = `product:${identifier}`;
 
-    // try {
-    //   const cached = await redis.get(cacheKey);
-    //   if (cached) return cached;
-    // } catch (error) {
-    //   console.error("Redis get error:", error);
-    // }
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) return cached;
+    } catch (error) {
+      console.error("Redis get error:", error);
+    }
 
     const product = await prisma.product.findFirst({
       where: {

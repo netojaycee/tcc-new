@@ -7,6 +7,7 @@ import { orderService, CreateOrderInput } from "@/lib/services/order.service";
 import { cartService } from "@/lib/services/cart.service";
 import { paymentService } from "@/lib/services/payment.service";
 import { checkoutFormSchema } from "@/lib/schema/checkout.schema";
+import { variantMatchesId, variantsFromUnknown } from "@/lib/utils/variant";
 
 // ============ HELPERS ============
 
@@ -27,7 +28,7 @@ function detectCurrencyFromCountry(country: string): string {
   };
 
   const normalized = country.toLowerCase().trim();
-  return currencyMap[normalized] || "gbp"; // Default to GBP
+  return currencyMap[normalized] || "cad"; // Default to CAD
 }
 
 // ============ READ ACTIONS ============
@@ -136,7 +137,9 @@ export async function checkoutAction(input: any) {
     const cartItems = cart.items.map((item: any) => ({
       productId: item.productId,
       quantity: item.quantity,
-      price: item.price,
+      price: item.product.basePrice,
+      variantId: item.variantId, // Include variant ID for Printful
+      customData: item.customData, // Include customization data
     }));
 
     // Use delivery address from form
@@ -323,4 +326,179 @@ export async function cancelOrderAction(orderId: string) {
       code: "CANCEL_ERROR",
     };
   }
+}
+// ============ PRINTFUL ORDER ACTIONS ============
+
+/**
+ * Create Printful order (called after Stripe payment confirmed)
+ * Converts our order into a Printful order for fulfillment
+ */
+export async function createPrintfulOrderAction(orderId: string) {
+  try {
+    // Get the order details
+    const orderResult = await orderService.getOrder(orderId);
+    if (!orderResult.success) {
+      return {
+        success: false,
+        error: "Order not found",
+        code: "ORDER_NOT_FOUND",
+      };
+    }
+
+    const order = orderResult.data;
+
+    // Verify order is paid
+    if (order.status !== "paid") {
+      return {
+        success: false,
+        error: "Order must be paid before creating Printful order",
+        code: "INVALID_STATUS",
+      };
+    }
+
+    // Skip if already has Printful order ID
+    if (order.printfulOrderId) {
+      return {
+        success: true,
+        data: { orderId, printfulOrderId: order.printfulOrderId },
+      };
+    }
+
+    const { printfulService } = await import(
+      "@/lib/services/printful.service"
+    );
+
+    // Build Printful order data
+    const printfulOrderData = {
+      external_id: order.orderNumber,
+      recipient: {
+        name: `${order.firstName} ${order.lastName}`.trim(),
+        email: order.email,
+        address1: (order.deliveryAddress as any)?.street || "",
+        city: (order.deliveryAddress as any)?.city || "",
+        state_code: (order.deliveryAddress as any)?.state,
+        state_name: (order.deliveryAddress as any)?.state,
+        country_code: getCountryCode((order.deliveryAddress as any)?.country),
+        zip: (order.deliveryAddress as any)?.zip || "",
+      },
+      items: order.items.map((item: any) => {
+        const variantId = parseInt(item.variantId || "0");
+        
+        // Skip invalid variant IDs
+        if (!variantId || isNaN(variantId)) {
+          console.warn(
+            `Skipping item with invalid variantId: ${item.variantId}`,
+          );
+          return null;
+        }
+
+        // Build files array - prefer customData, fallback to variant mockup files
+        let files: Array<{ type?: string; url: string }> = [];
+
+        // If user provided custom files/design
+        if (item.customData && Array.isArray(item.customData)) {
+          files = item.customData;
+        }
+        // Otherwise, try to get mockup files from the product variant
+        else if (item.product?.variants) {
+          try {
+            const variants = variantsFromUnknown(item.product.variants);
+
+            const selectedVariant = variants.find(
+              (v: any) => variantMatchesId(v, variantId),
+            );
+
+            if (selectedVariant?.files && Array.isArray(selectedVariant.files)) {
+              // Use mockup/preview files from the variant as the design
+              files = selectedVariant.files
+                .filter((f: any) => f.preview_url || f.url)
+                .map((f: any) => ({
+                  type: f.type || "design",
+                  url: f.preview_url || f.url,
+                }));
+            }
+          } catch (error) {
+            console.warn(
+              `Failed to extract variant files for variant ${variantId}:`,
+              error,
+            );
+          }
+        }
+
+        if (files.length === 0) {
+          console.warn(
+            `No design files found for variant ${variantId}. Printful may reject this item.`,
+          );
+        }
+
+        return {
+          variant_id: variantId,
+          quantity: item.quantity,
+          price: item.product.basePrice,
+          ...(files.length > 0 && { files }),
+        };
+      }).filter(Boolean),
+      shipping: "STANDARD", // Default shipping method
+    };
+
+    // Create order in Printful
+    const printfulOrder = await printfulService.createOrder(printfulOrderData);
+
+    // Update our order with Printful details
+    const updateResult = await orderService.setPrintfulOrder(
+      orderId,
+      String(printfulOrder.id),
+      printfulOrder.status,
+    );
+
+    if (!updateResult.success) {
+      return {
+        success: false,
+        error: "Failed to link Printful order",
+        code: "UPDATE_ERROR",
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        orderId,
+        printfulOrderId: printfulOrder.id,
+        printfulStatus: printfulOrder.status,
+      },
+    };
+  } catch (error) {
+    console.error("Create Printful order error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return {
+      success: false,
+      error: errorMessage,
+      code: "PRINTFUL_ERROR",
+    };
+  }
+}
+
+/**
+ * Helper: Convert country name to ISO country code
+ */
+function getCountryCode(country: string): string {
+  const countryCodeMap: Record<string, string> = {
+    "united kingdom": "GB",
+    uk: "GB",
+    "united states": "US",
+    us: "US",
+    usa: "US",
+    canada: "CA",
+    australia: "AU",
+    france: "FR",
+    germany: "DE",
+    spain: "ES",
+    italy: "IT",
+    netherlands: "NL",
+    belgium: "BE",
+    austria: "AT",
+  };
+
+  const normalized = (country || "").toLowerCase().trim();
+  return countryCodeMap[normalized] || "GB"; // Default to GB
 }

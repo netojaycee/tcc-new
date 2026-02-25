@@ -5,16 +5,38 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useCart } from "@/lib/hooks/use-cart";
 import { Loader2 } from "lucide-react";
+import { resolveVariantId } from "@/lib/utils/variant";
 
-export function AddToCartButton({ productId }: { productId: string }) {
+interface Variant {
+  id: number;
+  size: string;
+  color: string;
+  variant_id?: number;
+}
+
+export interface AddToCartButtonProps {
+  productId: string;
+  variant?: Variant | null;
+}
+
+export function AddToCartButton({ productId, variant }: AddToCartButtonProps) {
   const [loading, setLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
 
   async function handleAddToCart() {
+    const resolvedVariantId = resolveVariantId(variant);
+
+    // Validate variant selection
+    if (!variant || !resolvedVariantId) {
+      toast.error("Please select variant first");
+      return;
+    }
+
     setLoading(true);
     try {
-      const success = await addItem(productId, quantity);
+      // Pass both productId and variantId for proper tracking
+      const success = await addItem(productId, resolvedVariantId, quantity);
 
       if (success) {
         toast.success(
@@ -23,6 +45,7 @@ export function AddToCartButton({ productId }: { productId: string }) {
         setQuantity(1); // Reset quantity after successful add
       }
     } catch (error) {
+      console.log(error, "failed to add to cart")
       toast.error("Failed to add to cart");
     } finally {
       setLoading(false);
@@ -54,11 +77,15 @@ export function AddToCartButton({ productId }: { productId: string }) {
 
       <Button
         onClick={handleAddToCart}
-        disabled={loading}
+        disabled={loading || !resolveVariantId(variant)}
         className="flex-1 bg-primary hover:bg-primary/80 cursor-pointer"
       >
         {loading && <Loader2 className="animate-spin mr-2" />}
-        {loading ? "Processing..." : "Add to Cart"}
+        {!resolveVariantId(variant)
+          ? "Select Variant First"
+          : loading
+            ? "Processing..."
+            : "Add to Cart"}
       </Button>
     </div>
   );

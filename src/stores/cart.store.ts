@@ -7,16 +7,15 @@ export interface CartItem {
   productId: string;
   quantity: number;
   price: number;
+  variantId?: string; // Printful variant ID
   createdAt: string;
   updatedAt: string;
   product: {
     id: string;
     name: string;
-    price: number;
-    images: Array<{
-      url: string;
-      pubId: string;
-    }>;
+    basePrice: number;
+    mainImage?: string;
+    variants: any; // Variants JSON array with preview images
   };
 }
 
@@ -176,7 +175,7 @@ export const useCartStore = create<CartStore>()(
             productId: item.productId,
             productName: item.product.name,
             productImage: item.product.images[0] || "",
-            price: item.price,
+            price: item.product.basePrice,
             quantity: item.quantity,
           })) || [];
 
