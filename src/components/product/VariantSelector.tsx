@@ -119,7 +119,7 @@ export function VariantSelector({
         </label>
         <div className="flex flex-wrap gap-3">
           {uniqueColors.map((color) => {
-            const hexColor = COLOR_HEX_MAP[color.toLowerCase()] || "#CCCCCC";
+            const hexColor = COLOR_HEX_MAP.find((c: {name: string; hex: string}) => c.name.toLowerCase() === color.toLowerCase())?.hex || "#CCCCCC";
             const isSelected = selectedColor === color;
 
             return (
@@ -133,7 +133,7 @@ export function VariantSelector({
                 className={`relative group transition-transform ${
                   isSelected ? "scale-110" : "hover:scale-105"
                 }`}
-                title={color}
+                // title={color}
               >
                 {/* Color box */}
                 <div
@@ -146,7 +146,7 @@ export function VariantSelector({
                 />
 
                 {/* Tooltip */}
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                   {color}
                 </span>
               </button>
