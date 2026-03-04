@@ -12,12 +12,12 @@ export async function proxy(request: NextRequest) {
   
   // Protect /admin routes (example) - can expand logic here
   if (request.nextUrl.pathname.startsWith("/admin") && !currentUser) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
   
   // Protect /account routes
-  if (request.nextUrl.pathname.startsWith("/account") && !currentUser) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (request.nextUrl.pathname.startsWith("/accountj") && !currentUser) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
   return NextResponse.next();

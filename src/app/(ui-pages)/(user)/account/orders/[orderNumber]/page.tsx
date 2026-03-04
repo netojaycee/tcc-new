@@ -44,35 +44,63 @@ interface OrderData {
 function getTimelineSteps(status: string, createdAt: Date) {
   const statusMap: Record<
     string,
-    Array<{ label: string; status: "completed" | "pending"; description?: string }>
+    Array<{
+      label: string;
+      status: "completed" | "pending";
+      description?: string;
+    }>
   > = {
     paid: [
-      { label: "Order Confirmed", status: "completed", description: "We received your order" },
+      {
+        label: "Order Confirmed",
+        status: "completed",
+        description: "We received your order",
+      },
       { label: "Package Prepared", status: "pending" },
       { label: "In Transit", status: "pending" },
       { label: "Out for Delivery", status: "pending" },
       { label: "Delivered", status: "pending" },
     ],
     processing: [
-      { label: "Order Confirmed", status: "completed", description: "We received your order" },
+      {
+        label: "Order Confirmed",
+        status: "completed",
+        description: "We received your order",
+      },
       { label: "Package Prepared", status: "pending" },
       { label: "In Transit", status: "pending" },
       { label: "Out for Delivery", status: "pending" },
       { label: "Delivered", status: "pending" },
     ],
     shipped: [
-      { label: "Order Confirmed", status: "completed", description: "We received your order" },
+      {
+        label: "Order Confirmed",
+        status: "completed",
+        description: "We received your order",
+      },
       {
         label: "Package Prepared",
         status: "completed",
         description: "Gift package assembled",
       },
-      { label: "In Transit", status: "completed", description: "Package handed to courier and is on the way." },
-      { label: "Out for Delivery", status: "pending", description: "Estimated later today" },
+      {
+        label: "In Transit",
+        status: "completed",
+        description: "Package handed to courier and is on the way.",
+      },
+      {
+        label: "Out for Delivery",
+        status: "pending",
+        description: "Estimated later today",
+      },
       { label: "Delivered", status: "pending" },
     ],
     delivered: [
-      { label: "Order Confirmed", status: "completed", description: "We received your order" },
+      {
+        label: "Order Confirmed",
+        status: "completed",
+        description: "We received your order",
+      },
       {
         label: "Package Prepared",
         status: "completed",
@@ -166,7 +194,10 @@ export default function OrderDetailsPage() {
     );
   }
 
-  const timelineSteps = getTimelineSteps(order.status, new Date(order.createdAt));
+  const timelineSteps = getTimelineSteps(
+    order.status,
+    new Date(order.createdAt),
+  );
 
   return (
     <div className="min-h-screen px-4 lg:px-16 py-8 bg-white">
@@ -191,7 +222,9 @@ export default function OrderDetailsPage() {
             month: "long",
             day: "2-digit",
             year: "numeric",
-          })} • {new Date(order.createdAt).toLocaleTimeString("en-GB", {
+          })}{" "}
+          •{" "}
+          {new Date(order.createdAt).toLocaleTimeString("en-GB", {
             hour: "2-digit",
             minute: "2-digit",
             hour12: true,
@@ -257,13 +290,17 @@ export default function OrderDetailsPage() {
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
                 <span>
-                  {order.currency.toUpperCase()} {order.costs.subtotal.toFixed(2)}
+                  {order.currency.toUpperCase()}{" "}
+                  {order.costs.subtotal.toFixed(2)}
                 </span>
               </div>
               {order.costs.discountAmount > 0 && (
                 <div className="flex justify-between text-gray-600">
                   <span>Discount</span>
-                  <span>-{order.currency.toUpperCase()} {order.costs.discountAmount.toFixed(2)}</span>
+                  <span>
+                    -{order.currency.toUpperCase()}{" "}
+                    {order.costs.discountAmount.toFixed(2)}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between text-gray-600">
@@ -275,7 +312,8 @@ export default function OrderDetailsPage() {
               <div className="flex justify-between text-gray-600">
                 <span>Shipping</span>
                 <span>
-                  {order.currency.toUpperCase()} {order.costs.shipping.toFixed(2)}
+                  {order.currency.toUpperCase()}{" "}
+                  {order.costs.shipping.toFixed(2)}
                 </span>
               </div>
               <div className="border-t pt-3 flex justify-between font-semibold text-gray-900">

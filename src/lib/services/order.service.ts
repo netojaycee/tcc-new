@@ -185,7 +185,6 @@ export const orderService = {
           firstName: order.firstName || "",
           lastName: order.lastName || "",
           deliveryAddress: deliveryAddress,
-          currency: order.currency,
           status: order.status,
           orderNumber: order.orderNumber,
           createdAt: order.createdAt,
