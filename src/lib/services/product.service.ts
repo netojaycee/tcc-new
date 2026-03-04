@@ -226,8 +226,10 @@ export const productService = {
 
   async getRelatedProducts(filters?: {
     categoryId?: string;
+    limit?: number;
+    offset?: number;
   }): Promise<{ products: any[]; total: number }> {
-    const { categoryId } = filters || {};
+    const { categoryId, limit = 4, offset = 0 } = filters || {};
     const where: any = {};
     if (categoryId) where.categoryId = categoryId;
     if (!categoryId) where.productType = "store";
@@ -237,7 +239,8 @@ export const productService = {
       prisma.product.findMany({
         where,
         include: { _count: { select: { reviews: true } } },
-        take: 4, // Limit to 4 related products
+        take: limit, // Limit to specified number of related products
+        skip: offset, // Apply offset for pagination
       }),
       prisma.product.count({ where }),
     ]);

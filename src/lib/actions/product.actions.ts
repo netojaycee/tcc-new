@@ -31,7 +31,7 @@ export async function getProductsAction(filters?: {
   }
 }
 
-export async function getRelatedProductsAction(filters?: { categoryId?: string }) {
+export async function getRelatedProductsAction(filters?: { categoryId?: string; limit?: number; offset?: number }) {
   try {
     const result = await productService.getRelatedProducts(filters);
     return { success: true, data: result.products, total: result.total };

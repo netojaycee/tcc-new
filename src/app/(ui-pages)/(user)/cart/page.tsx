@@ -7,10 +7,21 @@ import { FreeDeliveryProgress } from "@/components/cart/FreeDeliveryProgress";
 import { PromoCodeSection } from "@/components/cart/PromoCodeSection";
 import { OrderSummary } from "@/components/checkout/order-summary";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProductCard } from "@/components/product/ProductCard";
+import { getProductsAction } from "@/lib/actions/product.actions";
+import { useEffect, useState } from "react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselDots,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 /**
  * Cart Page
- * 
+ *
  * Simplified flow:
  * - Display all items in cart
  * - Allow quantity changes and item removal
@@ -30,6 +41,28 @@ export default function CartPage() {
     refetch,
   } = useCart();
 
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
+
+  // Fetch related products on mount
+  useEffect(() => {
+    const fetchRelatedProducts = async () => {
+      setRelatedLoading(true);
+      try {
+        const result = await getProductsAction({ limit: 6, offset: 0 });
+        if (result.success) {
+          setRelatedProducts(result.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      } finally {
+        setRelatedLoading(false);
+      }
+    };
+
+    fetchRelatedProducts();
+  }, []);
+
   // Calculate subtotal
   const subtotal = items.reduce(
     (sum, item) => sum + item.product.basePrice * item.quantity,
@@ -38,9 +71,7 @@ export default function CartPage() {
 
   // Calculate discount if promo applied
   const discount =
-    appliedPromo && subtotal > 0
-      ? subtotal * (appliedPromo.discount / 100)
-      : 0;
+    appliedPromo && subtotal > 0 ? subtotal * (appliedPromo.discount / 100) : 0;
 
   // Loading state
   if (loading) {
@@ -99,7 +130,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen px-4 lg:px-16 bg-white">
+    <div className="min-h-screen px-4 lg:px-16 ">
       {/* Main content */}
       <div className="py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -131,6 +162,36 @@ export default function CartPage() {
             />
           </div>
         </div>
+
+        {/* You May Also Like - Carousel */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-8 border-t pt-4 mb-10">
+            <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">
+              you may also like
+            </h3>
+
+            <Carousel className="w-full">
+              <CarouselContent className="-ml-2 md:-ml-4">
+                {relatedProducts.map((product) => (
+                  <CarouselItem
+                    key={product.id}
+                    className="pl-2 md:pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
+                  >
+                    <ProductCard product={product} />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {/* <CarouselPrevious className="" />
+              <CarouselNext className="" /> */}
+
+              {relatedProducts.length > 1 && (
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-full">
+                  <CarouselDots />
+                </div>
+              )}
+            </Carousel>
+          </div>
+        )}
       </div>
     </div>
   );
