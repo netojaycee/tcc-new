@@ -30,7 +30,7 @@ export default function AllOrdersPage() {
         const result = await getUserOrdersAction(50, 0);
 
         if (result.success) {
-          setOrders((result as any)?.data || []);
+          setOrders(((result as any)?.data as any)?.orders);
         } else {
           setError(result.error || "Failed to fetch orders");
         }
@@ -45,7 +45,7 @@ export default function AllOrdersPage() {
     fetchOrders();
   }, []);
 
-  if (status === "loading" || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen px-4 lg:px-16 py-8 bg-white">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">My Orders</h1>
