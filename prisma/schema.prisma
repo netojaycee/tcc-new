@@ -13,6 +13,7 @@ enum Role {
 }
 
 enum OrderStatus {
+  draft
   pending
   paid
   processing
@@ -157,6 +158,7 @@ model Category {
   id         String    @id @default(cuid())
   printfulId Int?      @unique
   title      String
+  slug       String    @unique
   parentId   Int?
   imageUrl   String?
   size       String?
@@ -241,7 +243,8 @@ model Order {
   user           User?   @relation(fields: [userId], references: [id])
   email          String?
   firstName      String?
-  lastName       String?
+  lastName      String?
+  phone          String?
   guestSessionId String?
 
   // Payment
@@ -249,7 +252,8 @@ model Order {
   stripePaymentIntentId String?
   payment               Payment?
 
-  // Costs
+  // Costs (all stored in the user's currency, already converted from CAD)
+  currency       String @default("CAD")  // Currency of all stored amounts (USD, GBP, etc)
   subtotal       Float
   tax            Float  @default(0)
   shippingFee    Float  @default(0)
@@ -258,6 +262,7 @@ model Order {
 
   // Shipping Address
   deliveryAddress Json
+  shippingRates   Json?  // Store shipping rate options from Printful (these are in the order's currency)
 
   // PRINTFUL SYNC
   printfulOrderId  String? // Sent to Printful after payment
@@ -299,11 +304,12 @@ model Payment {
   orderId               String   @unique
   order                 Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   stripePaymentIntentId String?
-  status                String // pending, succeeded, failed, refunded
+  stripeClientSecret    String?  // Store clientSecret here
+  status                String   // pending, succeeded, failed, refunded
   amount                Float
   refundAmount          Float?   @default(0)
   currency              String   @default("cad")
-  details               Json? // webhook data, for insights
+  details               Json?    // webhook data, for insights
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   user                  User?    @relation(fields: [userId], references: [id])

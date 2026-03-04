@@ -16,11 +16,13 @@ interface CheckoutFormProps {
   orderId: string;
 }
 
-export function CheckoutForm({ clientSecret, orderId }: CheckoutFormProps) {
+export function CheckoutForm({
+  clientSecret,
+  orderId,
+}: CheckoutFormProps) {
   const router = useRouter();
   const stripe = useStripe();
   const elements = useElements();
-//   const { clearCart } = useCartStore();
 
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -73,7 +75,7 @@ export function CheckoutForm({ clientSecret, orderId }: CheckoutFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Payment Details Section */}
       <div className="border">
-        <div className="border bg-[#f5f5f5] p-2">
+        <div className="border bg-[#f5f5f5] p-3">
           <h2 className="text-lg font-semibold">Payment Details</h2>
           <p className="text-sm text-gray-600">Enter your card information</p>
         </div>

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { updateSession } from "@/lib/auth";
 
 export async function proxy(request: NextRequest) {
+
   // Update session expiration if session exists
   const response = await updateSession(request);
   if (response) return response;

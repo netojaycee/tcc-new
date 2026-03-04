@@ -1,6 +1,7 @@
 "use client";
 
 import { useCartStore, CartItem } from "@/stores/cart.store";
+import { useCurrency } from "@/lib/context/currency.context";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -11,6 +12,7 @@ interface CartItemComponentProps {
 
 export function CartItemComponent({ item }: CartItemComponentProps) {
     const { updateQuantity, removeItem } = useCartStore();
+    const { convertAmount, formatPrice } = useCurrency();
 
     const handleIncrement = () => {
         updateQuantity(item.id, item.quantity + 1);
@@ -27,6 +29,8 @@ export function CartItemComponent({ item }: CartItemComponentProps) {
     };
 
     const subtotal = item.product.basePrice * item.quantity;
+    const convertedPrice = convertAmount(item.product.basePrice);
+    const convertedSubtotal = convertAmount(subtotal);
 
     return (
         <div className="flex gap-4 py-4 border-b ">
@@ -49,7 +53,7 @@ export function CartItemComponent({ item }: CartItemComponentProps) {
                 <div>
                     <h3 className="font-medium text-sm">{item.product.name}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                        ${item.product.basePrice.toFixed(2)}
+                        {formatPrice(item.product.basePrice, convertedPrice)}
                     </p>
                 </div>
 
@@ -78,7 +82,7 @@ export function CartItemComponent({ item }: CartItemComponentProps) {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <p className="font-semibold text-sm">${subtotal.toFixed(2)}</p>
+                        <p className="font-semibold text-sm">{formatPrice(subtotal, convertedSubtotal)}</p>
                         <Button
                             variant="ghost"
                             size="icon"

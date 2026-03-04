@@ -4,7 +4,7 @@ import { z } from "zod";
 export const addressSchema = z.object({
   street: z.string().min(1, "Street address required"),
   city: z.string().min(1, "City required"),
-  state: z.string().min(1, "State required"),
+  state: z.string().optional(),
   zip: z.string().min(1, "ZIP code required"),
   country: z.string().min(1, "Country required"),
 });
@@ -31,9 +31,6 @@ export const checkoutFormSchema = z
     // Address: always use inline delivery address
     deliveryAddress: addressSchema,
 
-    // Gift options (optional)
-    occasion: z.string().optional().or(z.literal("")),
-    specialMessage: z.string().optional().or(z.literal("")),
   });
 
 // ============ TYPE EXPORTS ============

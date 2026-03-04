@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { redis } from "@/lib/redis";
 import { z } from "zod";
+import { printfulService } from "@/lib/services/printful.service";
 
 const CACHE_TTL = 1800; // 30 minutes for orders
 
@@ -46,8 +47,6 @@ export const createOrderSchema = z.object({
     .optional(), // Address collected from checkout form
   promoCodeId: z.string().optional(),
   email: z.string().email().optional(), // For guest orders
-  occasion: z.string().optional(), // Gift occasion
-  specialMessage: z.string().optional(), // Gift message
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
@@ -71,6 +70,8 @@ async function invalidateOrderCache(userId?: string) {
 }
 
 // Helper: Calculate tax based on delivery address country
+// DEPRECATED: Now using Printful API for tax calculation
+// Kept for reference only
 function calculateTax(subtotal: number, country: string): number {
   const taxRates: Record<string, number> = {
     "united kingdom": 0.2, // UK VAT 20%
@@ -89,6 +90,8 @@ function calculateTax(subtotal: number, country: string): number {
 }
 
 // Helper: Calculate shipping fee based on subtotal and country
+// DEPRECATED: Now using Printful API for shipping calculation
+// Kept for reference only
 function calculateShipping(subtotal: number, country: string): number {
   const normalized = country.toLowerCase().trim();
 
@@ -168,12 +171,14 @@ export const orderService = {
   },
 
   /**
-   * Get single order by ID
+   * Get single order by ID or order number
    */
-  async getOrder(orderId: string): Promise<OrderResult<any>> {
+  async getOrder(idOrOrderNumber: string): Promise<any> {
     try {
-      const order = await prisma.order.findUnique({
-        where: { id: orderId },
+      const order = await prisma.order.findFirst({
+        where: {
+          OR: [{ id: idOrOrderNumber }, { orderNumber: idOrOrderNumber }],
+        },
         include: {
           items: {
             include: {
@@ -183,13 +188,11 @@ export const orderService = {
                   name: true,
                   basePrice: true,
                   mainImage: true,
-                  gallery: true,
-                  variants: true, // Include variants JSON for Printful files
+                  variants: true,
                 },
               },
             },
           },
-          promoCode: true,
           payment: true,
         },
       });
@@ -198,11 +201,55 @@ export const orderService = {
         return {
           success: false,
           error: "Order not found",
-          code: "NOT_FOUND",
         };
       }
 
-      return { success: true, data: order };
+      // Parse delivery address from JSON
+      const deliveryAddress =
+        typeof order.deliveryAddress === "string"
+          ? JSON.parse(order.deliveryAddress)
+          : order.deliveryAddress;
+
+      // Parse shipping rates from JSON
+      const shippingRates =
+        typeof order.shippingRates === "string"
+          ? JSON.parse(order.shippingRates)
+          : (order.shippingRates as any) || [];
+
+      // Return transformed order - clientSecret is read from the payment relation
+      return {
+        success: true,
+        data: {
+          id: order.id,
+          draftOrderId: order.id,
+          currency: order.currency,
+          clientSecret: order.payment?.stripeClientSecret || "",
+          email: order.email || "",
+          firstName: order.firstName || "",
+          lastName: order.lastName || "",
+          deliveryAddress: deliveryAddress,
+          status: order.status,
+          orderNumber: order.orderNumber,
+          createdAt: order.createdAt,
+          items: order.items.map((item: any) => ({
+            id: item.id,
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+            price: item.price,
+            product: item.product,
+
+          })),
+          costs: {
+            subtotal: order.subtotal,
+            discountAmount: order.discountAmount || 0,
+            tax: order.tax || 0,
+            shipping: order.shippingFee || 0,
+            total: order.total,
+          },
+          shippingRates: Array.isArray(shippingRates) ? shippingRates : [],
+        },
+      };
     } catch (error) {
       console.error("Get order error:", error);
       return {
@@ -247,67 +294,65 @@ export const orderService = {
     }
   },
 
-  // ============ CREATE ORDER ============
-
   /**
-   * Create order from cart items
+   * Create draft order (checkout unified flow)
+   * This is called before payment - costs are locked at this point
+   * Called from checkoutUnifiedAction
    */
-  async createOrder(
-    data: CreateOrderInput,
-    userId?: string,
-    sessionId?: string,
-  ): Promise<OrderResult<any>> {
+  async createDraftOrder(data: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    deliveryAddress: {
+      street: string;
+      city: string;
+      state?: string;
+      zip: string;
+      country: string;
+    };
+    items: Array<{
+      productId: string;
+      variantId?: string;
+      quantity: number;
+      price: number;
+      customData?: any;
+    }>;
+    subtotal: number;
+    discountAmount: number;
+    tax: number;
+    shippingFee: number;
+    total: number;
+    currency: string;      // User's currency (amounts are already converted)
+    promoCodeId?: string;
+    userId?: string;
+    sessionId?: string;
+    shippingRates?: any[]; // Save shipping rates to order
+  }): Promise<string> {
     try {
-      const validated = createOrderSchema.parse(data);
-
-      // Calculate subtotal
-      const subtotal = validated.cartItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0,
-      );
-
-      // Calculate discount
-      let discountAmount = 0;
-      if (validated.promoCodeId) {
-        const promoCode = await prisma.promoCode.findUnique({
-          where: { id: validated.promoCodeId },
-        });
-
-        if (promoCode) {
-          discountAmount =
-            promoCode.type === "percent"
-              ? (subtotal * promoCode.value) / 100
-              : promoCode.value;
-        }
-      }
-
-      // Calculate tax and shipping based on delivery address
-      const country = validated.deliveryAddress?.country || "United Kingdom";
-      const tax = calculateTax(subtotal - discountAmount, country);
-      const shippingFee = calculateShipping(subtotal - discountAmount, country);
-
-      // Calculate final total: subtotal - discount + tax + shipping
-      const total = subtotal - discountAmount + tax + shippingFee;
-
-      // Create order with items in transaction
       const order = await prisma.order.create({
         data: {
           orderNumber: generateOrderNumber(),
-          userId,
-          firstName: validated.firstName || "",
-          lastName: validated.lastName || "",
-          email: validated.email,
-          guestSessionId: sessionId,
-          status: "pending",
-          subtotal,
-          tax,
-          shippingFee,
-          discountAmount,
-          total,
-          promoCodeId: validated.promoCodeId,
-          deliveryAddress: validated.deliveryAddress as any,
+          userId: data.userId,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          phone: data.phone,
+          email: data.email,
+          guestSessionId: data.sessionId,
+          status: "draft", // Draft until payment
+          currency: data.currency,
+          subtotal: data.subtotal,
+          tax: data.tax,
+          shippingFee: data.shippingFee,
+          discountAmount: data.discountAmount,
+          total: data.total,
+          deliveryAddress: data.deliveryAddress as any,
+          shippingRates: data.shippingRates
+            ? (data.shippingRates as any)
+            : null, // Save shipping rates
+          promoCodeId: data.promoCodeId,
           items: {
-            create: validated.cartItems.map((item) => ({
+            create: data.items.map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
               price: item.price,
@@ -316,32 +361,17 @@ export const orderService = {
             })),
           },
         },
-        include: {
-          items: { include: { product: true } },
-          promoCode: true,
-        },
       });
 
       // Invalidate user cache
-      if (userId) {
-        await invalidateOrderCache(userId);
+      if (data.userId) {
+        await invalidateOrderCache(data.userId);
       }
 
-      return { success: true, data: order };
+      return order.id;  // Return UUID, not orderNumber
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return {
-          success: false,
-          error: error.issues[0].message,
-          code: "VALIDATION_ERROR",
-        };
-      }
-      console.error("Create order error:", error);
-      return {
-        success: false,
-        error: "Failed to create order",
-        code: "CREATE_ERROR",
-      };
+      console.error("Create draft order error:", error);
+      throw new Error("Failed to create draft order");
     }
   },
 
@@ -353,6 +383,7 @@ export const orderService = {
   async updateOrderStatus(
     orderId: string,
     status:
+      | "draft"
       | "pending"
       | "paid"
       | "processing"

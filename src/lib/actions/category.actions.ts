@@ -14,8 +14,8 @@ export async function getCategoriesAction(filters?: {
   offset?: number;
 }) {
   try {
-    const categories = await categoryService.getAllCategories(filters);
-    return { success: true, data: categories };
+    const result = await categoryService.getAllCategories(filters);
+    return { success: true, data: result.categories, total: result.total };
   } catch (error) {
     console.error("Get categories error:", error);
     return { success: false, error: "Failed to fetch categories" };

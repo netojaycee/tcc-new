@@ -17,7 +17,7 @@ export default function Logo() {
       <Image
         src={"/logo.png"}
         alt='Logo'
-        width={40}
+        width={90}
         height={45}
         className='object-cover md:hidden'
         quality={75}

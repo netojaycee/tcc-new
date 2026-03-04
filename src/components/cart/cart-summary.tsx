@@ -1,10 +1,12 @@
 "use client";
 
 import { useCartStore } from "@/stores/cart.store";
+import { useCurrency } from "@/lib/context/currency.context";
 import { useMemo } from "react";
 
 export function CartSummary() {
   const { items } = useCartStore();
+  const { convertAmount, formatPrice } = useCurrency();
 
   const subtotal = useMemo(() => {
     return items.reduce(
@@ -13,15 +15,14 @@ export function CartSummary() {
     );
   }, [items]);
 
+  const convertedSubtotal = convertAmount(subtotal);
+
   return (
     <div className="space-y-3">
       <div className="flex justify-between text-sm">
         <span className="text-muted-foreground">Subtotal</span>
         <span className="font-medium">
-          {new Intl.NumberFormat("en-CA", {
-            style: "currency",
-            currency: "CAD",
-          }).format(subtotal)}
+          {formatPrice(subtotal, convertedSubtotal)}
         </span>
       </div>
 
@@ -29,10 +30,7 @@ export function CartSummary() {
         <div className="flex justify-between">
           <span className="font-semibold">Estimated Total</span>
           <span className="font-bold text-lg">
-            {new Intl.NumberFormat("en-CA", {
-              style: "currency",
-              currency: "CAD",
-            }).format(subtotal)}
+            {formatPrice(subtotal, convertedSubtotal)}
           </span>
         </div>
       </div>

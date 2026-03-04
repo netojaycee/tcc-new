@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useCurrency } from "@/lib/context/currency.context";
 import { Button } from "@/components/ui/button";
 
 interface PromoCodeSectionProps {
@@ -16,6 +17,7 @@ export function PromoCodeSection({
 }: PromoCodeSectionProps) {
   const [promoCode, setPromoCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { convertAmount, formatPrice } = useCurrency();
 
   const handleApply = async () => {
     if (!promoCode.trim()) return;
@@ -36,6 +38,8 @@ export function PromoCodeSection({
       handleApply();
     }
   };
+
+  const convertedDiscount = discount ? convertAmount(discount) : 0;
 
   return (
     <div className="bg-white rounded-lg mt-2 mb-4">
@@ -68,7 +72,7 @@ export function PromoCodeSection({
             ✓ Promo code &quot;{appliedPromo}&quot; applied
           </p>
           <p className="text-sm text-green-600 mt-1">
-            Discount: ${discount.toFixed(2)}
+            Discount: {formatPrice(discount, convertedDiscount)}
           </p>
         </div>
       ) : (

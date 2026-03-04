@@ -368,6 +368,52 @@ class PrintfulService {
   }
 
   /**
+   * Get order cost estimate before creating the order
+   * This calculates shipping and tax for the given items and address
+   */
+  async estimateOrderCosts(
+    items: Array<{ variant_id: string | number; quantity: number }>,
+    recipient: PrintfulAddress,
+  ): Promise<{ shipping: number; tax: number; subtotal?: number; total?: number; discount?: number; shipping_time?: string }> {
+    try {
+      const payload = {
+        items,
+        recipient,
+      };
+
+      const { data } = await this.client.post<
+        PrintfulApiResponse<any>
+      >("/orders/estimate-costs", payload);
+
+      const result = data.result;
+      const costs = result.costs || {};
+
+      console.log("[Printful] Order cost estimate:", costs);
+
+      console.log("[Printful] Full estimate response:", JSON.stringify(result, null, 2));
+
+      // Try to get shipping time from result (if available in the response)
+      const shippingTime = result.estimated_delivery?.
+        days || result.shipping_time || 
+        `${result.min_delivery_days || 5}-${result.max_delivery_days || 10} business days`;
+console.log("[Printful] Estimated shipping time:", shippingTime);
+      return {
+        shipping: costs.shipping || 0,
+        tax: costs.tax || 0,
+        subtotal: costs.subtotal || 0,
+        discount: costs.discount || 0,
+        total: costs.total || 0,
+        shipping_time: shippingTime,
+      };
+    } catch (error) {
+      throw this.handleError(
+        error,
+        "Failed to estimate order costs from Printful",
+      );
+    }
+  }
+
+  /**
    * Handle and standardize errors
    */
   private handleError(error: unknown, defaultMessage: string): never {

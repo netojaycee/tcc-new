@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useCurrency } from "@/lib/context/currency.context";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -26,9 +27,15 @@ export function OrderSummaryCart({
   isLoading = false,
 }: OrderSummaryProps) {
   const router = useRouter();
+  const { convertAmount, formatPrice } = useCurrency();
 
   // Calculate values if not provided
   const calculatedTotal = total ?? (subtotal - discountAmount);
+
+  // Convert amounts
+  const convertedSubtotal = convertAmount(subtotal);
+  const convertedDiscount = convertAmount(discountAmount);
+  const convertedTotal = convertAmount(calculatedTotal);
 
   const canCheckout = selectedItemsCount > 0 && !isLoading;
 
@@ -59,10 +66,7 @@ export function OrderSummaryCart({
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Subtotal</span>
           <span className="font-semibold text-gray-900">
-            {new Intl.NumberFormat("en-CA", {
-              style: "currency",
-              currency: "CAD",
-            }).format(subtotal)}
+            {formatPrice(subtotal, convertedSubtotal)}
           </span>
         </div>
 
@@ -72,12 +76,7 @@ export function OrderSummaryCart({
               Discount {isPromoApplied && "✓"}
             </span>
             <span className="font-semibold text-green-600">
-                {new Intl.NumberFormat("en-CA", {
-                  style: "currency",
-                  currency: "CAD",
-                }).format(-discountAmount)}
-              {/* -£{discountAmount.toFixed(2)} */}
-              {/* -£{discountAmount.toFixed(2)} */}
+              -{formatPrice(discountAmount, convertedDiscount)}
             </span>
           </div>
         )}
@@ -93,10 +92,7 @@ export function OrderSummaryCart({
           Total
         </span>
         <span className="text-2xl md:text-3xl font-bold text-gray-900">
-          {new Intl.NumberFormat("en-CA", {
-            style: "currency",
-            currency: "CAD",
-          }).format(calculatedTotal)}
+          {formatPrice(calculatedTotal, convertedTotal)}
         </span>
       </div>
 

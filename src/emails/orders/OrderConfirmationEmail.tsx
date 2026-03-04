@@ -103,10 +103,7 @@ export default function OrderConfirmationEmail({
               margin: 0,
             }}
           >
-            {new Intl.NumberFormat("en-CA", {
-              style: "currency",
-              currency: "CAD",
-            }).format(orderTotal)}
+            CAD {orderTotal.toFixed(2)}
           </Text>
         </div>
 

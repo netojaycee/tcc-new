@@ -1,6 +1,7 @@
 import {
   getProductAction,
   getProductsAction,
+  getRelatedProductsAction,
   // getRelatedProductsAction,
 } from "@/lib/actions/product.actions";
 import { getProductReviewsAction } from "@/lib/actions/review.actions";
@@ -9,6 +10,7 @@ import Image from "next/image";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ReviewsSection } from "@/components/product/ReviewsSection";
 import { ProductDetailsGrid } from "@/components/product/ProductDetailsGrid";
+import { ProductPricingDetails } from "@/components/product/ProductPricingDetails";
 import { Star } from "lucide-react";
 import {
   Accordion,
@@ -35,31 +37,29 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const product = result.data;
 
-  console.log(product, "product");
+  // console.log(product, "product");
 
   // Fetch real reviews
   const reviewsResult = await getProductReviewsAction(product.id, 10, 0);
   const reviews = reviewsResult.success ? reviewsResult.data : ([] as Review[]);
 
   // Fetch related products from same category
-  // const relatedResult = await getRelatedProductsAction(
-  //   product.id,
-  //   product.categoryId,
-  //   4,
-  // );
-  // const relatedProducts = relatedResult.success
-  //   ? relatedResult.data
-  //   : ([] as typeof relatedResult.data);
-
-  // use all products with limit 4 in same category as fallback for related products
-  const relatedResult = await getProductsByCategoryAction(product.categoryId, {
-    limit: 4,
-    offset: 0,
-    sortBy: "newest",
+  const relatedResult = await getRelatedProductsAction({
+    categoryId: product.categoryId,
   });
   const relatedProducts = relatedResult.success
-    ? relatedResult.data.products
-    : ([] as any[]);
+    ? relatedResult.data
+    : ([] as typeof relatedResult.data);
+
+  // use all products with limit 4 in same category as fallback for related products
+  // const relatedResult = await getProductsByCategoryAction(product.categoryId, {
+  //   limit: 4,
+  //   offset: 0,
+  //   sortBy: "newest",
+  // });
+  // const relatedProducts = relatedResult.success
+  //   ? relatedResult.data.products
+  //   : ([] as any[]);
 
   // console.log("Related products:", relatedResult, product);
 
@@ -103,107 +103,34 @@ export default async function ProductPage({ params }: ProductPageProps) {
           productId={product.id}
           variants={product.variants as any}
           defaultGalleryImages={product.gallery || []}
+          productType={productType}
           detailsContent={
             <>
-              {/* Product Header */}
-              <div>
-                {/* <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  <Badge variant="secondary" className="text-xs">
-                    +{product.type?.toUpperCase()}
-                  </Badge>
-                  {product.discountPercentage && (
-                    <Badge variant="destructive" className="text-xs">
-                      {Math.round(product.discountPercentage)}% OFF
-                    </Badge>
-                  )}
-                </div> */}
-
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-                  {product.name}
-                </h1>
-
-                {/* Rating and Sales */}
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        size={16}
-                        className={
-                          i < Math.floor(product.avgRating || 0)
-                            ? "fill-yellow-400 text-yellow-400"
-                            : "text-gray-300"
-                        }
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs md:text-sm text-gray-600">
-                    ({product.soldCount || 0}+ sold)
-                  </span>
-                </div>
-              </div>
-
-              {/* What's Included */}
-              <Accordion
-                type="single"
-                collapsible
-                className="bg-[#E5E5E5]/30 p-2"
-              >
-                <AccordionItem value="included" className="border-0">
-                  <AccordionTrigger className="py-3 underline underline-offset-3 text-gray-900 font-semibold">
-                    What&apos;s included?
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-4 ">
-                    <ul className="space-y-2">
-                      {whatIncluded.map((item: string, idx: number) => (
-                        <li
-                          key={idx}
-                          className="text-sm text-gray-700 flex items-start gap-2"
-                        >
-                          <span className="text-gray-400">•</span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-
-              {/* Price */}
-              <div>
-                <div className="flex items-baseline gap-2 mb-2 border-t border-b">
-                  <span className="text-2xl md:text-3xl font-bold text-gray-900">
-                    ${product.basePrice.toFixed(2)}
-                  </span>
-                  {product.discountPercentage && (
-                    <span className="text-sm md:text-base text-gray-500 line-through">
-                      $
-                      {(
-                        product.basePrice /
-                        (1 - (product.discountPercentage || 0) / 100)
-                      ).toFixed(2)}
-                    </span>
-                  )}
-                </div>
-                {product.discountPercentage && product.discountExpiry && (
-                  <p className="text-xs text-red-600">
-                    Discount expires:{" "}
-                    {new Date(product.discountExpiry).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
+              {/* Product Pricing Details with Currency Conversion */}
+              <ProductPricingDetails
+                name={product.name}
+                basePrice={product.basePrice}
+                avgRating={product.avgRating}
+                discountPercentage={product.discountPercentage}
+                discountExpiry={product.discountExpiry}
+              />
             </>
           }
         />
         {/* Reviews Section */}
-        <ReviewsSection
+        {/* <ReviewsSection
           averageRating={product.avgRating || 0}
           reviewCount={product.reviewCount || 0}
           reviews={reviews as any}
-        />
+        /> */}
         {/* Additional Info Accordions */}
-        <div className="mt-8 space-y-3">
-          <Accordion type="single" collapsible className="bg-[#E5E5E5]/30 p-2" defaultValue="perfect">
+        {/* <div className="mt-8 space-y-3">
+          <Accordion
+            type="single"
+            collapsible
+            className="bg-[#E5E5E5]/30 p-2"
+            defaultValue="perfect"
+          >
             <AccordionItem value="perfect" className="">
               <AccordionTrigger className="px-4 py-3 underline underline-offset-3">
                 Perfect For?
@@ -224,7 +151,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </AccordionItem>
           </Accordion>
 
-          <Accordion type="single" collapsible className="bg-[#E5E5E5]/30 p-2" defaultValue="why">
+          <Accordion
+            type="single"
+            collapsible
+            className="bg-[#E5E5E5]/30 p-2"
+            defaultValue="why"
+          >
             <AccordionItem value="why" className="">
               <AccordionTrigger className="px-4 py-3 underline underline-offset-3">
                 Why Choose this Package?
@@ -245,7 +177,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </AccordionItem>
           </Accordion>
 
-          <Accordion type="single" collapsible className="bg-[#E5E5E5]/30 p-2" defaultValue="delivery">
+          <Accordion
+            type="single"
+            collapsible
+            className="bg-[#E5E5E5]/30 p-2"
+            defaultValue="delivery"
+          >
             <AccordionItem value="delivery" className="">
               <AccordionTrigger className="px-4 py-3 underline underline-offset-3">
                 Delivery
@@ -270,7 +207,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </AccordionContent>
             </AccordionItem>
           </Accordion>
-        </div>
+        </div> */}
 
         {/* You May Also Like */}
         <div className="mt-12 border-t pt-8">

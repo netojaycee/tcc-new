@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useCurrency } from "@/lib/context/currency.context";
+import { useCart } from "@/lib/hooks/use-cart";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +18,9 @@ import { getOrderAction } from "@/lib/actions/order.actions";
 function OrderConfirmationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const orderId = searchParams.get("orderId");
+  const { formatPrice } = useCurrency();
+  const { clearCart } = useCart();
+  const orderId = searchParams.get("orderId");  // Use UUID directly
 
   const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +47,13 @@ function OrderConfirmationContent() {
 
     fetchOrder();
   }, [orderId, router]);
+
+  // Clear cart when order is successfully loaded
+  useEffect(() => {
+    if (order && !error) {
+      clearCart();
+    }
+  }, [order, error, clearCart]);
 
   if (isPending) {
     return (
@@ -92,10 +103,7 @@ function OrderConfirmationContent() {
               <div>
                 <p className="text-muted-foreground">Total</p>
                 <p className="font-medium">
-                  {new Intl.NumberFormat("en-CA", {
-                    style: "currency",
-                    currency: "CAD",
-                  }).format(order.total)}
+                  {formatPrice(order.costs.total, order.costs.total)}
                 </p>
               </div>
               <div>
@@ -118,13 +126,6 @@ function OrderConfirmationContent() {
                     <span>
                       {item.product?.name || "Item"} x {item.quantity}
                     </span>
-                    <span>
-                      {" "}
-                      {new Intl.NumberFormat("en-CA", {
-                        style: "currency",
-                        currency: "CAD",
-                      }).format(item.product.basePrice * item.quantity)}
-                    </span>
                   </div>
                 ))}
               </div>
@@ -136,47 +137,40 @@ function OrderConfirmationContent() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>
-                    {" "}
-                    {new Intl.NumberFormat("en-CA", {
-                      style: "currency",
-                      currency: "CAD",
-                    }).format(order.subtotal)}
+                    {formatPrice(order.costs.subtotal, order.costs.subtotal)}
                   </span>
                 </div>
-                {order.discountAmount > 0 && (
+                {order.costs.discountAmount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Discount</span>
                     <span className="text-green-600">
                       -
-                      {new Intl.NumberFormat("en-CA", {
-                        style: "currency",
-                        currency: "CAD",
-                      }).format(order.discountAmount)}
+                      {formatPrice(
+                        order.costs.discountAmount,
+                        order.costs.discountAmount,
+                      )}
                     </span>
                   </div>
                 )}
-                {order.tax > 0 && (
+                {order.costs.tax > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tax</span>
                     <span>
-                      {new Intl.NumberFormat("en-CA", {
-                        style: "currency",
-                        currency: "CAD",
-                      }).format(order.tax)}
+                      {formatPrice(order.costs.tax, order.costs.tax)}
                     </span>
                   </div>
                 )}
-                {order.shippingFee >= 0 && (
+                {order.costs.shipping >= 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
                     <span>
-                      {order.shippingFee === 0 ? (
+                      {order.costs.shipping === 0 ? (
                         <span className="text-green-600">Free</span>
                       ) : (
-                        new Intl.NumberFormat("en-CA", {
-                          style: "currency",
-                          currency: "CAD",
-                        }).format(order.shippingFee)
+                        formatPrice(
+                          order.costs.shipping,
+                          order.costs.shipping,
+                        )
                       )}
                     </span>
                   </div>
@@ -184,10 +178,7 @@ function OrderConfirmationContent() {
                 <div className="flex justify-between font-semibold border-t pt-2">
                   <span>Total</span>
                   <span>
-                    {new Intl.NumberFormat("en-CA", {
-                      style: "currency",
-                      currency: "CAD",
-                    }).format(order.total)}
+                    {formatPrice(order.costs.total, order.costs.total)}
                   </span>
                 </div>
               </div>

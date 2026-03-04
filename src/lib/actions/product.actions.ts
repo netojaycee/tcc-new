@@ -10,14 +10,31 @@ import { productService } from "@/lib/services/product.service";
  */
 export async function getProductsAction(filters?: {
   type?: "store" | "catalog";
+  category?: string;
   search?: string;
   limit?: number;
   offset?: number;
   sortBy?: "newest" | "popular" | "price_asc" | "price_desc" | "rating";
+  minPrice?: number;
+  maxPrice?: number;
+  sizes?: string[];
+  fits?: string[];
+  materials?: string[];
+  minRating?: number;
 }) {
   try {
-    const products = await productService.getProducts(filters);
-    return { success: true, data: products };
+    const result = await productService.getProducts(filters);
+    return { success: true, data: result.products, total: result.total };
+  } catch (error) {
+    console.error("Get products error:", error);
+    return { success: false, error: "Failed to fetch products" };
+  }
+}
+
+export async function getRelatedProductsAction(filters?: { categoryId?: string }) {
+  try {
+    const result = await productService.getRelatedProducts(filters);
+    return { success: true, data: result.products, total: result.total };
   } catch (error) {
     console.error("Get products error:", error);
     return { success: false, error: "Failed to fetch products" };

@@ -1,17 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { getCategoriesAction } from "@/lib/actions/category.actions";
 
-const catalogCategories = [
-  { name: "Apparel", featured: true },
-  { name: "Bags & accessories", image: "/feature.png" },
-  { name: "Home & lifestyle", image: "/feature.png" },
-  { name: "Stationery", image: "/feature.png" },
-  { name: "Phone & tech", image: "/feature.png" },
-  { name: "Apparel", image: "/feature.png" },
-];
+export async function CatalogCategoriesSection() {
+  // Fetch categories dynamically (will be cached in Redis)
+  const result = await getCategoriesAction({
+    limit: 12, // Fetch extra to allow slicing
+    offset: 0,
+  });
 
-export function CatalogCategoriesSection() {
+  // Get categories from result, default to empty array if failed
+  const allCategories = result.success ? result.data : [];
+
+  // Slice to show categories 5-11 (6 items)
+  const displayCategories = allCategories && allCategories.slice(5, 11) || [];
+
   return (
     <section className="px-2 md:px-4 lg:px-16">
       <div className="space-y-4">
@@ -20,29 +24,29 @@ export function CatalogCategoriesSection() {
         </h2>
 
         <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
-          {catalogCategories.map((category, index) => (
+          {displayCategories.map((category, index) => (
             <Link
-              key={`${category.name}-${index}`}
-              href="/products"
+              key={`${category.id}-${index}`}
+              href={`/products?category=${category.slug}`}
               className="group relative aspect-square rounded-md overflow-hidden"
             >
-              {category.featured ? (
-                <div className="absolute inset-0 bg-foreground/70" />
-              ) : (
-                <>
-                  <Image
-                    src={category.image ?? "/feature.png"}
-                    alt={category.name}
-                    fill
-                    className="object-cover transition-transform duration-200 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-foreground/55" />
-                </>
+              {/* Overlay with dark background */}
+              <div className="absolute inset-0 bg-black/60" />
+
+              {/* Background image if available */}
+              {category.imageUrl && (
+                <Image
+                  src={category.imageUrl}
+                  alt={category.title}
+                  fill
+                  className="object-cover transition-transform duration-200 group-hover:scale-105 blur-[1px]"
+                />
               )}
 
-              <div className="absolute inset-0 flex items-center justify-center px-2 text-center">
-                <span className="text-background text-sm md:text-base leading-tight">
-                  {category.name}
+              {/* Text overlay */}
+              <div className=" absolute inset-0 flex items-center justify-center px-2 text-center">
+                <span className="bg-black text-background text-sm md:text-base leading-tight font-medium">
+                  {category.title}
                 </span>
               </div>
             </Link>
@@ -63,7 +67,7 @@ export function CatalogCategoriesSection() {
               asChild
               className="md:w-1/3 w-full h-11 md:h-12 text-base md:text-lg"
             >
-              <Link href="/category/catalog">See all Categories</Link>
+              <Link href="/products">See all Categories</Link>
             </Button>
           </div>
         </div>

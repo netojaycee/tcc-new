@@ -28,20 +28,17 @@ export default function MobileFooter() {
   };
 
   return (
-    <footer className="bg-[#374151] text-white py-8">
+    <footer className="bg-white text-gray-900 py-8">
       <div className="container mx-auto px-4">
         {/* Logo */}
-        <div className="mb-6">
-          <Logo />
-        </div>
 
         {/* Accordions Section */}
         <Accordion type="single" collapsible className="mb-8">
           <AccordionItem
             value="help-support"
-            className="border-b border-gray-700"
+            className="border-b border-gray-200"
           >
-            <AccordionTrigger className="text-base font-semibold uppercase py-4 hover:text-primary transition-colors">
+            <AccordionTrigger className="text-base font-semibold uppercase py-4 text-gray-900 hover:text-primary transition-colors">
               Help & Support
             </AccordionTrigger>
             <AccordionContent className="pb-4">
@@ -50,7 +47,7 @@ export default function MobileFooter() {
                   <li key={index}>
                     <Link
                       href={link.href}
-                      className="text-sm hover:text-primary transition-colors"
+                      className="text-sm text-gray-700 hover:text-primary transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -62,9 +59,9 @@ export default function MobileFooter() {
 
           <AccordionItem
             value="customer-service"
-            className="border-b border-gray-700"
+            className="border-b border-gray-200"
           >
-            <AccordionTrigger className="text-base font-semibold uppercase py-4 hover:text-primary transition-colors">
+            <AccordionTrigger className="text-base font-semibold uppercase py-4 text-gray-900 hover:text-primary transition-colors">
               Customer Service
             </AccordionTrigger>
             <AccordionContent className="pb-4">
@@ -73,7 +70,7 @@ export default function MobileFooter() {
                   <li key={index}>
                     <Link
                       href={link.href}
-                      className="text-sm hover:text-primary transition-colors"
+                      className="text-sm text-gray-700 hover:text-primary transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -85,15 +82,15 @@ export default function MobileFooter() {
 
           <AccordionItem
             value="contact-info"
-            className="border-b border-gray-700"
+            className="border-b border-gray-200"
           >
-            <AccordionTrigger className="text-base font-semibold uppercase py-4 hover:text-primary transition-colors">
+            <AccordionTrigger className="text-base font-semibold uppercase py-4 text-gray-900 hover:text-primary transition-colors">
               Contact Info
             </AccordionTrigger>
             <AccordionContent className="pb-4">
               <ul className="space-y-2">
                 {contactInfoItems.map((item, index) => (
-                  <li key={index} className="text-sm">
+                  <li key={index} className="text-sm text-gray-700">
                     {item}
                   </li>
                 ))}
@@ -103,8 +100,10 @@ export default function MobileFooter() {
         </Accordion>
 
         {/* Follow Us Section */}
-        <div className="mb-8 pb-6 border-b border-gray-700">
-          <p className="text-sm font-semibold uppercase mb-3">Follow Us:</p>
+        <div className="mb-8 pb-6 border-b border-gray-200">
+          <p className="text-sm font-semibold uppercase mb-3 text-gray-900">
+            Follow Us:
+          </p>
           <div className="flex gap-4">
             <a
               href="https://instagram.com"
@@ -112,7 +111,7 @@ export default function MobileFooter() {
               rel="noopener noreferrer"
               aria-label="Instagram"
             >
-              <Instagram className="w-6 h-6 hover:text-primary transition-colors" />
+              <Instagram className="w-6 h-6 text-gray-700 hover:text-primary transition-colors" />
             </a>
             <a
               href="https://facebook.com"
@@ -120,7 +119,7 @@ export default function MobileFooter() {
               rel="noopener noreferrer"
               aria-label="Facebook"
             >
-              <Facebook className="w-6 h-6 hover:text-primary transition-colors" />
+              <Facebook className="w-6 h-6 text-gray-700 hover:text-primary transition-colors" />
             </a>
             <a
               href="https://twitter.com"
@@ -128,7 +127,7 @@ export default function MobileFooter() {
               rel="noopener noreferrer"
               aria-label="Twitter"
             >
-              <Twitter className="w-6 h-6 hover:text-primary transition-colors" />
+              <Twitter className="w-6 h-6 text-gray-700 hover:text-primary transition-colors" />
             </a>
             <a
               href="https://linkedin.com"
@@ -136,14 +135,14 @@ export default function MobileFooter() {
               rel="noopener noreferrer"
               aria-label="LinkedIn"
             >
-              <Linkedin className="w-6 h-6 hover:text-primary transition-colors" />
+              <Linkedin className="w-6 h-6 text-gray-700 hover:text-primary transition-colors" />
             </a>
           </div>
         </div>
 
         {/* Newsletter Section */}
-        <div className="mb-8 pb-6 border-b border-gray-700">
-          <h3 className="text-base font-bold mb-4">
+        <div className="mb-8 pb-6 border-b border-gray-200">
+          <h3 className="text-base font-bold mb-4 text-gray-900">
             Subscribe to our newsletter & get 10% discount
           </h3>
           <form onSubmit={handleSubmit} className="gap-2 flex">
@@ -152,7 +151,7 @@ export default function MobileFooter() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-gray-900 text-white border-gray-600 flex-1"
+              className="bg-gray-50 text-gray-900 border-gray-300 flex-1"
               required
             />
             <Button
@@ -165,8 +164,8 @@ export default function MobileFooter() {
         </div>
 
         {/* Secure Shopping */}
-        <div className="mb-8 pb-6 border-b border-gray-700">
-          <p className="text-sm font-semibold uppercase mb-3">
+        <div className="mb-8 pb-6 border-b border-gray-200">
+          <p className="text-sm font-semibold uppercase mb-3 text-gray-900">
             Secure shopping
           </p>
           <div className="flex gap-2">
@@ -175,36 +174,44 @@ export default function MobileFooter() {
               alt="Visa"
               width={48}
               height={30}
-              className="bg-white rounded p-1"
+              className="bg-white rounded p-1 border border-gray-200"
             />
             <Image
               src="/amazon.png"
               alt="Amazon pay"
               width={48}
               height={30}
-              className="bg-white rounded p-1"
+              className="bg-white rounded p-1 border border-gray-200"
             />
             <Image
               src="/paypal.png"
               alt="PayPal"
               width={48}
               height={30}
-              className="bg-white rounded p-1"
+              className="bg-white rounded p-1 border border-gray-200"
             />
             <Image
               src="/mastercard.png"
               alt="Mastercard"
               width={48}
               height={30}
-              className="bg-white rounded p-1"
+              className="bg-white rounded p-1 border border-gray-200"
             />
           </div>
         </div>
 
         {/* Copyright */}
-        <div className="text-center">
-          <p className="text-xs text-gray-400">
-            Copyright © 2025 Place of Treasure | All Rights Reserved
+        <div className="mb-3">
+          <p className="text-xs text-gray-500">
+            Copyright © 2025 thecertifiedchristian | All Rights Reserved{" "}
+          </p>
+        </div>
+
+        <div className="mb-2">
+          <Logo />
+
+          <p className="text-sm text-gray-600 mt-2">
+            Crafted on demand with quality you can trust...
           </p>
         </div>
       </div>

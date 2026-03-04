@@ -33,31 +33,40 @@ export const categoryService = {
   async getAllCategories(filters?: {
     limit?: number;
     offset?: number;
-  }): Promise<any[]> {
-    const { limit = 50, offset = 0 } = filters || {};
+  }): Promise<{ categories: any[]; total: number }> {
+    const { limit = 12, offset = 0 } = filters || {};
     const cacheKey = `categories:all:${limit}:${offset}`;
+    const countCacheKey = `categories:count`;
 
     try {
       const cached = await redis.get(cacheKey);
-      if (cached) return cached as any[];
+      if (cached) {
+        const cachedCount = await redis.get(countCacheKey);
+        const count = typeof cachedCount === 'string' ? parseInt(cachedCount, 10) : cachedCount || 0;
+        return { categories: cached as any[], total: Number(count) };
+      }
     } catch (error) {
       console.error("Redis get error:", error);
     }
 
-    const categories = await prisma.category.findMany({
-      include: { _count: { select: { products: true } } },
-      orderBy: { title: "asc" },
-      skip: offset,
-      take: limit,
-    });
+    const [categories, total] = await Promise.all([
+      prisma.category.findMany({
+        include: { _count: { select: { products: true } } },
+        orderBy: { title: "asc" },
+        skip: offset,
+        take: limit,
+      }),
+      prisma.category.count(),
+    ]);
 
     try {
       await redis.set(cacheKey, categories, { ex: CACHE_TTL });
+      await redis.set(countCacheKey, total, { ex: CACHE_TTL });
     } catch (error) {
       console.error("Redis set error:", error);
     }
 
-    return categories;
+    return { categories, total };
   },
 
   /**
@@ -78,6 +87,7 @@ export const categoryService = {
         OR: [
           { id: identifier },
           { title: identifier },
+          { slug: identifier },
           { printfulId: parseInt(identifier) || undefined },
         ],
       },
@@ -132,7 +142,7 @@ export const categoryService = {
    * Get products in a category
    */
   async getProductsByCategory(
-    categoryId: string,
+    categoryIdentifier: string,
     filters?: {
       limit?: number;
       offset?: number;
@@ -140,13 +150,26 @@ export const categoryService = {
     },
   ): Promise<any[]> {
     const { limit = 20, offset = 0, sortBy = "newest" } = filters || {};
-    const cacheKey = `category:${categoryId}:products:${limit}:${offset}:${sortBy}`;
+    const cacheKey = `category:${categoryIdentifier}:products:${limit}:${offset}:${sortBy}`;
 
     try {
       const cached = await redis.get(cacheKey);
       if (cached) return cached as any[];
     } catch (error) {
       console.error("Redis get error:", error);
+    }
+
+    // Find category by id or slug
+    const category = await prisma.category.findFirst({
+      where: {
+        OR: [
+          { id: categoryIdentifier },
+          { slug: categoryIdentifier },
+        ],
+      },
+    });
+    if (!category) {
+      return [];
     }
 
     const orderByMap: Record<string, any> = {
@@ -157,7 +180,7 @@ export const categoryService = {
     };
 
     const products = await prisma.product.findMany({
-      where: { categoryId },
+      where: { categoryId: category.id },
       include: { _count: { select: { reviews: true } } },
       orderBy: orderByMap[sortBy],
       skip: offset,

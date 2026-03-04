@@ -62,38 +62,83 @@ export const productService = {
    */
   async getProducts(filters?: {
     type?: "store" | "catalog";
+    category?: string;
     search?: string;
     limit?: number;
     offset?: number;
     sortBy?: "newest" | "popular" | "price_asc" | "price_desc" | "rating";
-  }): Promise<any[]> {
+    minPrice?: number;
+    maxPrice?: number;
+    sizes?: string[];
+    fits?: string[];
+    materials?: string[];
+    minRating?: number;
+  }): Promise<{ products: any[]; total: number }> {
     const {
       type,
       search,
-      limit = 20,
+      limit = 12,
       offset = 0,
       sortBy = "newest",
+      category,
+      minPrice,
+      maxPrice,
+      sizes,
+      fits,
+      materials,
+      minRating,
     } = filters || {};
 
-    // Generate cache key based on filters
-    const cacheKey = `products:list:${JSON.stringify({ type, search, limit, offset, sortBy })}`;
+    // Generate cache key based on filters (excluding ui-only filters like sizes, fits, materials for now)
+    const cacheKey = `products:list:${JSON.stringify({ type, category, search, limit, offset, sortBy, minPrice, maxPrice, minRating })}`;
+    const countCacheKey = `products:count:${JSON.stringify({ type, category, search, minPrice, maxPrice, minRating })}`;
 
+    // Check cache first
     try {
       const cached = await redis.get(cacheKey);
-      if (cached) return cached as any[];
+      if (cached) {
+        const cachedCount = await redis.get(countCacheKey);
+        const count = typeof cachedCount === 'string' ? parseInt(cachedCount, 10) : cachedCount || 0;
+        return { products: cached as any[], total: Number(count) };
+      }
     } catch (error) {
       console.error("Redis get error:", error);
     }
 
-    // Build where clause
+    // Build where clause for database filters
     const where: any = {};
     if (type) where.productType = type;
+
+    // Price range filtering
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      where.basePrice = {};
+      if (minPrice !== undefined) where.basePrice.gte = minPrice;
+      if (maxPrice !== undefined) where.basePrice.lte = maxPrice;
+    }
+
+    // Rating filtering
+    if (minRating !== undefined) {
+      where.avgRating = { gte: minRating };
+    }
+
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
-        { tags: { hasSome: [search] } },
       ];
+    }
+
+    // If category slug is provided, find category and filter by categoryId
+    if (category) {
+      const foundCategory = await prisma.category.findFirst({
+        where: { slug: category },
+      });
+      if (foundCategory) {
+        where.categoryId = foundCategory.id;
+      } else {
+        // If category not found, return empty array
+        return { products: [], total: 0 };
+      }
     }
 
     // Build orderBy
@@ -105,22 +150,99 @@ export const productService = {
       rating: { avgRating: "desc" },
     };
 
-    const products = await prisma.product.findMany({
-      where,
-      include: { _count: { select: { reviews: true } } },
-      orderBy: orderByMap[sortBy],
-      take: limit,
-      skip: offset,
-    });
+    // Fetch products with database filters applied
+    const [allProducts, dbTotal] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: { _count: { select: { reviews: true } } },
+        orderBy: orderByMap[sortBy],
+        // Don't limit/skip yet - we need to filter by variants first
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    // Apply variant-based filters (sizes, fits, materials) in-memory
+    // These require checking the JSON variants array
+    let filteredProducts = allProducts;
+
+    if (
+      (sizes && sizes.length > 0) ||
+      (fits && fits.length > 0) ||
+      (materials && materials.length > 0)
+    ) {
+      filteredProducts = allProducts.filter((product) => {
+        const variants = (product.variants as any[]) || [];
+
+        // Check size filter
+        if (sizes && sizes.length > 0) {
+          const hasSize = variants.some(
+            (v) =>
+              v.size &&
+              sizes.some((s) => v.size.toLowerCase() === s.toLowerCase()),
+          );
+          if (!hasSize) return false;
+        }
+
+        // Check fit filter
+        if (fits && fits.length > 0) {
+          const hasFit = variants.some(
+            (v) =>
+              v.fit &&
+              fits.some((f) => v.fit.toLowerCase() === f.toLowerCase()),
+          );
+          if (!hasFit) return false;
+        }
+
+        // Check material filter
+        if (materials && materials.length > 0) {
+          const hasMaterial = variants.some(
+            (v) =>
+              v.material &&
+              materials.some(
+                (m) => v.material.toLowerCase() === m.toLowerCase(),
+              ),
+          );
+          if (!hasMaterial) return false;
+        }
+
+        return true;
+      });
+    }
+
+    // Now apply pagination to the filtered results
+    const total = filteredProducts.length;
+    const products = filteredProducts.slice(offset, offset + limit);
 
     // Cache
     try {
       await redis.set(cacheKey, products, { ex: CACHE_TTL });
+      await redis.set(countCacheKey, total, { ex: CACHE_TTL });
     } catch (error) {
       console.error("Redis set error:", error);
     }
 
-    return products;
+    return { products, total };
+  },
+
+  async getRelatedProducts(filters?: {
+    categoryId?: string;
+  }): Promise<{ products: any[]; total: number }> {
+    const { categoryId } = filters || {};
+    const where: any = {};
+    if (categoryId) where.categoryId = categoryId;
+    if (!categoryId) where.productType = "store";
+
+    // Fetch products with database filters applied
+    const [allProducts, dbTotal] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: { _count: { select: { reviews: true } } },
+        take: 4, // Limit to 4 related products
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    return { products: allProducts, total: dbTotal };
   },
 
   /**
@@ -171,7 +293,8 @@ export const productService = {
    * Search products
    */
   async searchProducts(query: string, limit = 20): Promise<any[]> {
-    return this.getProducts({ search: query, limit });
+    const result = await this.getProducts({ search: query, limit });
+    return result.products;
   },
 
   // ============ ADMIN WRITE OPERATIONS ============
@@ -367,6 +490,7 @@ export const productService = {
       const results = [];
 
       for (const pfCategory of printfulCategories) {
+        const slug = generateSlug(pfCategory.title);
         const upsertedCategory = await prisma.category.upsert({
           where: { printfulId: pfCategory.id },
           update: {
@@ -374,6 +498,7 @@ export const productService = {
             parentId: pfCategory.parent_id,
             imageUrl: pfCategory.image_url,
             size: pfCategory.size,
+            slug,
           },
           create: {
             printfulId: pfCategory.id,
@@ -381,6 +506,7 @@ export const productService = {
             parentId: pfCategory.parent_id,
             imageUrl: pfCategory.image_url,
             size: pfCategory.size,
+            slug,
           },
         });
         results.push({ category: upsertedCategory });
@@ -458,6 +584,7 @@ export const productService = {
                 parentId: pfCategory.parent_id,
                 imageUrl: pfCategory.image_url,
                 size: pfCategory.size,
+                slug: generateSlug(pfCategory.title),
               },
             });
           } catch (err) {

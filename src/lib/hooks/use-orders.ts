@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getUserOrdersAction,
   getOrderAction,
-  createOrderAction,
   cancelOrderAction,
 } from "@/lib/actions/order.actions";
 import { CreateOrderInput } from "@/lib/services/order.service";
@@ -47,26 +46,7 @@ export function useOrder(orderId: string) {
   });
 }
 
-// Create order
-export function useCreateOrder() {
-  const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (data: CreateOrderInput) => {
-      const result = await createOrderAction(data);
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-      //   return result.data;
-      return result;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: orderQueryKeys.list() });
-      // Optionally prefetch the new order detail
-      queryClient.setQueryData(orderQueryKeys.detail((data as any).id), data);
-    },
-  });
-}
 
 // Cancel order
 export function useCancelOrder() {

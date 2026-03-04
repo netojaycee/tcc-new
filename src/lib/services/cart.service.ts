@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { redis } from "@/lib/redis";
 import { z } from "zod";
+import { printfulService } from "@/lib/services/printful.service";
 
 const CACHE_TTL = 1800; // 30 minutes for cart (more frequent updates)
 
@@ -88,6 +89,8 @@ async function getOrCreateCart(
 }
 
 // Helper: Calculate tax based on delivery address country
+// DEPRECATED: Now using Printful API for tax calculation
+// Kept for reference only
 function calculateTax(subtotal: number, country: string): number {
   const taxRates: Record<string, number> = {
     "united kingdom": 0.2, // UK VAT 20%
@@ -106,6 +109,8 @@ function calculateTax(subtotal: number, country: string): number {
 }
 
 // Helper: Calculate shipping fee based on subtotal and country
+// DEPRECATED: Now using Printful API for shipping calculation
+// Kept for reference only
 function calculateShipping(subtotal: number, country: string): number {
 
   // Free shipping on orders over £50
@@ -794,11 +799,49 @@ export const cartService = {
 
       const discountedSubtotal = subtotal - discount;
 
-      // Calculate tax based on address country
-      const tax = calculateTax(discountedSubtotal, address.country);
+      // Get real shipping and tax from Printful
+      // Do NOT use fallback rates - require Printful to work
+      let shipping = 0;
+      let tax = 0;
+      let shippingTime = "";
 
-      // Calculate shipping based on address country (estimate)
-      const shipping = calculateShipping(discountedSubtotal, address.country);
+      try {
+        const printfulItems = cart.items.map((item: any) => ({
+
+          variant_id: item.variantId,
+          quantity: item.quantity,
+        }));
+
+        // Convert country code for Printful API
+        const countryCode = address.country.toUpperCase().slice(0, 2);
+
+        console.log("[Checkout] Calling Printful for shipping/tax estimate");
+        const printfulCosts = await printfulService.estimateOrderCosts(
+          printfulItems,
+          {
+            address1: address.street,
+            city: address.city,
+            state_code: address.state || "",
+            country_code: countryCode,
+            zip: address.zip,
+          },
+        );
+
+        shipping = printfulCosts.shipping || 0;
+        tax = printfulCosts.tax || 0;
+        shippingTime = printfulCosts.shipping_time || "5-10 business days";
+        console.log(JSON.stringify(printfulCosts, null, 2));
+        console.log(
+          `[Checkout] Printful estimated - Shipping: ${shipping}, Tax: ${tax}, Time: ${shippingTime}`,
+        );
+      } catch (error) {
+        console.error("[Checkout] Printful cost estimation failed:", error);
+        return {
+          success: false,
+          error: "Unable to calculate shipping costs. Please try again or contact support.",
+          code: "PRINTFUL_ERROR",
+        };
+      }
 
       // Calculate total
       const total = discountedSubtotal + tax + shipping;
@@ -811,6 +854,7 @@ export const cartService = {
           shipping: Math.round(shipping * 100) / 100,
           discount: Math.round(discount * 100) / 100,
           total: Math.round(total * 100) / 100,
+          shippingTime,
           itemCount: cart.items.reduce(
             (sum: number, item: any) => sum + item.quantity,
             0,

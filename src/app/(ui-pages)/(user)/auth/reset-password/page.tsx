@@ -2,7 +2,7 @@
 import ChangePassword from "@/components/auth/ChangePassword";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import LoaderComponent from "@/app/loading";
+import LoaderComponent from "@/app/loadingd";
 
 export default function ResetPassword() {
   const router = useRouter();

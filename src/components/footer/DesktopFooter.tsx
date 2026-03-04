@@ -28,16 +28,15 @@ export default function DesktopFooter() {
   };
 
   return (
-    <footer className="bg-[#374151] text-white">
+    <footer className="bg-white text-gray-900">
       {/* Top Section */}
-      <div className=" px-4 md:px-16 py-8">
+      <div className="px-4 md:px-16 py-12 border-b border-gray-200">
         <div className="grid grid-cols-4 gap-12">
           {/* Logo & Description */}
           <div>
             <Logo />
-            <p className="text-sm text-gray-400 mt-4">
-              Thoughtfully curated gifts for every occasion, priced fairly and
-              delivered reliably across the UK.
+            <p className="text-sm text-gray-600 mt-4">
+             Crafted on demand with quality you can trust...
             </p>
           </div>
           {/* Help & Support */}
@@ -50,7 +49,7 @@ export default function DesktopFooter() {
                 <li key={index}>
                   <Link
                     href={link.href}
-                    className="text-sm hover:text-primary transition-colors"
+                    className="text-sm text-gray-700 hover:text-primary transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -69,7 +68,7 @@ export default function DesktopFooter() {
                 <li key={index}>
                   <Link
                     href={link.href}
-                    className="text-sm hover:text-primary transition-colors"
+                    className="text-sm text-gray-700 hover:text-primary transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -85,7 +84,7 @@ export default function DesktopFooter() {
             </h3>
             <ul className="space-y-2">
               {contactInfoItems.map((item, index) => (
-                <li key={index} className="text-sm">
+                <li key={index} className="text-sm text-gray-700">
                   {item}
                 </li>
               ))}
@@ -95,11 +94,11 @@ export default function DesktopFooter() {
       </div>
 
       {/* Bottom Section */}
-      <div className="px-4 md:px-16 py-4">
-        <div className="flex items-center justify-between">
+      <div className="px-4 md:px-16 py-8 border-b border-gray-200">
+        <div className="flex items-center justify-between gap-8">
           {/* Newsletter */}
-          <div className="max-w-md w-full">
-            <h3 className="text-sm font-semibold mb-4">
+          <div className="flex-1 max-w-md">
+            <h3 className="text-sm font-semibold mb-4 text-gray-900">
               Subscribe to our newsletter & get 10% discount
             </h3>
             <form onSubmit={handleSubmit} className="flex gap-2">
@@ -108,7 +107,7 @@ export default function DesktopFooter() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-gray-900 text-white border-gray-600 flex-1"
+                className="bg-gray-50 text-gray-900 border-gray-300 flex-1"
                 required
               />
               <Button
@@ -122,7 +121,9 @@ export default function DesktopFooter() {
 
           {/* Follow Us */}
           <div className="">
-            <p className="text-sm font-semibold mb-3">FOLLOW US:</p>
+            <p className="text-sm font-semibold mb-3 text-gray-900">
+              FOLLOW US:
+            </p>
             <div className="flex gap-3 justify-end">
               <a
                 href="https://instagram.com"
@@ -130,7 +131,7 @@ export default function DesktopFooter() {
                 rel="noopener noreferrer"
                 aria-label="Instagram"
               >
-                <Instagram className="w-6 h-6 hover:text-primary transition-colors" />
+                <Instagram className="w-6 h-6 text-gray-700 hover:text-primary transition-colors" />
               </a>
               <a
                 href="https://facebook.com"
@@ -138,7 +139,7 @@ export default function DesktopFooter() {
                 rel="noopener noreferrer"
                 aria-label="Facebook"
               >
-                <Facebook className="w-6 h-6 hover:text-primary transition-colors" />
+                <Facebook className="w-6 h-6 text-gray-700 hover:text-primary transition-colors" />
               </a>
               <a
                 href="https://twitter.com"
@@ -146,7 +147,7 @@ export default function DesktopFooter() {
                 rel="noopener noreferrer"
                 aria-label="Twitter"
               >
-                <Twitter className="w-6 h-6 hover:text-primary transition-colors" />
+                <Twitter className="w-6 h-6 text-gray-700 hover:text-primary transition-colors" />
               </a>
               <a
                 href="https://linkedin.com"
@@ -154,53 +155,56 @@ export default function DesktopFooter() {
                 rel="noopener noreferrer"
                 aria-label="LinkedIn"
               >
-                <Linkedin className="w-6 h-6 hover:text-primary transition-colors" />
+                <Linkedin className="w-6 h-6 text-gray-700 hover:text-primary transition-colors" />
               </a>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="mt-8 flex items-center justify-between">
+      {/* Payment & Copyright */}
+      <div className="px-4 md:px-16 py-8">
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold mb-3">Secure shopping</p>
+            <p className="text-sm font-semibold mb-3 text-gray-900">
+              Secure shopping
+            </p>
             <div className="flex flex-wrap gap-2">
               <Image
                 src="/visa.png"
                 alt="Visa"
                 width={48}
                 height={30}
-                className="bg-white rounded p-1"
+                className="bg-white rounded p-1 border border-gray-200"
               />
               <Image
                 src="/amazon.png"
                 alt="Amazon pay"
                 width={48}
                 height={30}
-                className="bg-white rounded p-1"
+                className="bg-white rounded p-1 border border-gray-200"
               />
               <Image
                 src="/paypal.png"
                 alt="PayPal"
                 width={48}
                 height={30}
-                className="bg-white rounded p-1"
+                className="bg-white rounded p-1 border border-gray-200"
               />
               <Image
                 src="/mastercard.png"
                 alt="Mastercard"
                 width={48}
                 height={30}
-                className="bg-white rounded p-1"
+                className="bg-white rounded p-1 border border-gray-200"
               />
             </div>
           </div>
           {/* Copyright */}
           <div className="">
-            <div className="container mx-auto px-4 py-4 text-center">
-              <p className="text-xs text-gray-500">
-                Copyright © 2025 Place of Treasure | All Rights Reserved
-              </p>
-            </div>
+            <p className="text-xs text-gray-500">
+              Copyright © 2025 thecertifiedchristian | All Rights Reserved{" "}
+            </p>
           </div>
         </div>
       </div>

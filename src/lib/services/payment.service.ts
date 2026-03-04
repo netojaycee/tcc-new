@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import Stripe from "stripe";
 import { z } from "zod";
+import { printfulService } from "@/lib/services/printful.service";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -89,12 +90,14 @@ export const paymentService = {
         create: {
           orderId: validated.orderId,
           stripePaymentIntentId: paymentIntent.id,
+          stripeClientSecret: paymentIntent.client_secret,
           status: paymentIntent.status,
           amount: validated.amount,
           currency: currency.toLowerCase(),
         },
         update: {
           stripePaymentIntentId: paymentIntent.id,
+          stripeClientSecret: paymentIntent.client_secret,
           status: paymentIntent.status,
         },
       });
@@ -212,12 +215,53 @@ export const paymentService = {
         },
       });
 
-      // Update order status
+      // Update order status to paid
       const order = await prisma.order.update({
         where: { id: orderId },
         data: { status: "paid" },
         include: { items: { include: { product: true } }, payment: true },
       });
+
+      // Create Printful order after payment succeeds
+      try {
+        const deliveryAddress = typeof order.deliveryAddress === "string" 
+          ? JSON.parse(order.deliveryAddress) 
+          : order.deliveryAddress;
+
+        const printfulOrder = await printfulService.createOrder({
+          external_id: orderId, // Link to our order ID
+          recipient: {
+            name: `${order.firstName} ${order.lastName}`.trim(),
+            email: order.email || "",
+            address1: deliveryAddress.street,
+            city: deliveryAddress.city,
+            state_code: deliveryAddress.state || "",
+            country_code: deliveryAddress.country.toUpperCase().slice(0, 2),
+            zip: deliveryAddress.zip,
+          },
+          items: order.items.map((item: any) => ({
+            variant_id: item.variantId,
+            quantity: item.quantity,
+            retail_price: item.price, // Our price in user's currency
+          })),
+        });
+
+        // Save Printful order ID and status to database
+        await prisma.order.update({
+          where: { id: orderId },
+          data: {
+            printfulOrderId: printfulOrder.id.toString(),
+            printfulStatus: printfulOrder.status || "draft",
+            lastPrintfulSync: new Date(),
+          },
+        });
+
+        console.log(`[Payment Webhook] Created Printful order ${printfulOrder.id} for order ${orderId}`);
+      } catch (printfulError) {
+        // Don't fail payment if Printful order creation fails - log and continue
+        console.error("[Payment Webhook] Failed to create Printful order:", printfulError);
+        // In production, you might want to queue this for retry or alert admin
+      }
 
       return { success: true, data: { order, payment } };
     } catch (error) {

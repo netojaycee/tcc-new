@@ -25,7 +25,7 @@ export async function BestSellingSection() {
           our brand designs
         </h2>
 
-        <Link href={"/"} className="md:text-2xl text-red-500 underline">
+        <Link href={"/products/store"} className="md:text-2xl text-red-500 underline">
           view collection
         </Link>
       </div>

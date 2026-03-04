@@ -1,18 +1,25 @@
+"use client"
 import Link from "next/link";
 import Image from "next/image";
 import { Product } from "@/lib/hooks/use-products";
-import { Star } from "lucide-react";
+import { Pencil, PencilOff, Star } from "lucide-react";
 import { AddToCartButton } from "./AddToCartButton";
+import { useCurrency } from "@/lib/context/currency.context";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { convertAmount, currency, formatPrice } = useCurrency();
+
   // Calculate average rating from reviews (if available in future)
   const rating = product.avgRating || 4;
   const soldCount = 3;
   // const categoryName = product.category?.title || product.type || "PRODUCT";
+
+  // Convert price to user's currency
+  const convertedPrice = convertAmount(product.basePrice);
 
   // Render star rating
   const renderStars = (rating: number) => {
@@ -38,7 +45,7 @@ export function ProductCard({ product }: ProductCardProps) {
       prefetch={true}
       href={`/product/${product.productType}/${product.slug}`}
     >
-      <div className="group cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-lg">
+      <div className="group cursor-pointer overflow-hidden rounded-none border-none bg-white transition-shadow hover:shadow-lg">
         {/* Product Image */}
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           {product.mainImage ? (
@@ -64,11 +71,11 @@ export function ProductCard({ product }: ProductCardProps) {
           </h3>
 
           {/* Description */}
-          {product.description && (
-            <p className="text-xs text-gray-600 line-clamp-2 h-8">
+          {/* {product.description && ( */}
+          {/* <p className="text-xs text-gray-600 line-clamp-2 h-8">
               {product.description}
-            </p>
-          )}
+            </p> */}
+          {/* )} */}
 
           {/* Rating and Review Count */}
           <div className="flex items-center justify-between pt-1">
@@ -80,13 +87,17 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           </div>
 
-          {/* Price */}
-          <p className="text-lg font-bold text-gray-900 pt-1">
-            {new Intl.NumberFormat("en-CA", {
-              style: "currency",
-              currency: "CAD",
-            }).format(product.basePrice)}
-          </p>
+          <div className="flex items-center justify-between">
+            {/* Price - Converted to user's currency */}
+            <p className="text-lg font-bold text-gray-900 pt-1">
+              {formatPrice(product.basePrice, convertedPrice)}
+            </p>
+            {product.productType === "catalog" ? (
+              <Pencil className="w-4 h-4 text-gray-500" />
+            ) : (
+              <PencilOff className="w-4 h-4 text-red-500" />
+            )}
+          </div>
 
           {/* <AddToCartButton productId={product.id} /> */}
         </div>

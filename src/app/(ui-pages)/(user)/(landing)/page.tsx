@@ -2,7 +2,9 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { CatalogCategoriesSection } from "@/components/landing/CatalogCategoriesSection";
 import { BestSellingSection } from "@/components/landing/BestSellingSection";
 import { ValuePropsSection } from "@/components/landing/ValuePropsSection";
-export const dynamic = "force-dynamic";
+import { SkeletonProductGrid, SkeletonCategoryGrid } from "@/components/skeletons";
+import { Suspense } from "react";
+// export const dynamic = "force-dynamic";
 
 export default function Home() {
   return (
@@ -11,11 +13,14 @@ export default function Home() {
       <HeroSection />
 
       {/* Best Selling Section */}
-      <BestSellingSection />
+      <Suspense fallback={<SkeletonProductGrid count={8} />}>
+        <BestSellingSection />
+      </Suspense>
 
       {/* Catalog Categories Section */}
-      <CatalogCategoriesSection />
-
+      <Suspense fallback={<SkeletonCategoryGrid count={6} />}>
+        <CatalogCategoriesSection />
+      </Suspense>
       {/* Value Props Section */}
       <ValuePropsSection />
     </div>

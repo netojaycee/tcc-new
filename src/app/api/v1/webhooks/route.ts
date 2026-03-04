@@ -90,31 +90,6 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Send order confirmation email
-      try {
-        const orderResult = await orderService.getOrder(orderId);
-        if (orderResult.success) {
-          const order = orderResult.data;
-          await sendOrderConfirmationEmail({
-            firstName: order.firstName,
-            orderNumber: order.orderNumber,
-            orderId: order.id,
-            orderTotal: order.total,
-            itemCount: order.items.length,
-            deliveryAddress: order.deliveryAddress,
-            customerEmail: order.email,
-            // deliveryAddress: `${(order.deliveryAddress as any)?.street}, ${(order.deliveryAddress as any)?.city}, ${(order.deliveryAddress as any)?.state} ${(order.deliveryAddress as any)?.zip}`,
-          });
-          console.log(`Sent order confirmation email to ${order.email}`);
-        }
-      } catch (emailError) {
-        console.error(
-          "Failed to send confirmation email:",
-          emailError instanceof Error ? emailError.message : emailError,
-        );
-        // Don't fail webhook if email fails
-      }
-
       // Create Printful order for fulfillment
       try {
         const orderResult = await orderService.getOrder(orderId);
@@ -136,20 +111,11 @@ export async function POST(request: NextRequest) {
             email: order.email,
             address1: (order.deliveryAddress as any)?.street || "",
             city: (order.deliveryAddress as any)?.city || "",
-            state_code: (order.deliveryAddress as any)?.state,
-            state_name: (order.deliveryAddress as any)?.state,
-            country_code: getCountryCode(
-              (order.deliveryAddress as any)?.country,
-            ),
+            state_code: (order.deliveryAddress as any)?.state || "",
+            state_name: (order.deliveryAddress as any)?.state || "",
+            country_code: (order.deliveryAddress as any)?.country || "",
+
             zip: (order.deliveryAddress as any)?.zip || "",
-            //         "name": "Alex Carter",
-            // "email": "johncedeh29@gmail.com",
-            // "address1": "1234 Maple Street",
-            // "city": "Toronto",
-            // "state_code": "ON",
-            // "state_name": "Ontario",
-            // "country_code": "CA",
-            // "zip": "M5V 2T6"
           },
           items: order.items
             .map((item: any) => {
@@ -176,8 +142,8 @@ export async function POST(request: NextRequest) {
                 try {
                   const variants = variantsFromUnknown(item.product.variants);
 
-                  const selectedVariant = variants.find(
-                    (v: any) => variantMatchesId(v, variantId),
+                  const selectedVariant = variants.find((v: any) =>
+                    variantMatchesId(v, variantId),
                   );
 
                   if (
@@ -260,6 +226,31 @@ export async function POST(request: NextRequest) {
           console.error("Error stack:", printfulError.stack);
         }
         // Don't fail the webhook, but log for manual intervention
+      }
+
+      // Send order confirmation email
+      try {
+        const orderResult = await orderService.getOrder(orderId);
+        if (orderResult.success) {
+          const order = orderResult.data;
+          await sendOrderConfirmationEmail({
+            firstName: order.firstName,
+            orderNumber: order.orderNumber,
+            orderId: order.id,
+            orderTotal: order.total,
+            itemCount: order.items.length,
+            deliveryAddress: order.deliveryAddress,
+            customerEmail: order.email,
+            // deliveryAddress: `${(order.deliveryAddress as any)?.street}, ${(order.deliveryAddress as any)?.city}, ${(order.deliveryAddress as any)?.state} ${(order.deliveryAddress as any)?.zip}`,
+          });
+          console.log(`Sent order confirmation email to ${order.email}`);
+        }
+      } catch (emailError) {
+        console.error(
+          "Failed to send confirmation email:",
+          emailError instanceof Error ? emailError.message : emailError,
+        );
+        // Don't fail webhook if email fails
       }
 
       return NextResponse.json(

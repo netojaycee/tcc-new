@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCartStore, CartItem } from "@/stores/cart.store";
+import { useCurrency } from "@/lib/context/currency.context";
 import {
   getVariantImage,
   variantMatchesId,
@@ -11,24 +12,18 @@ import {
 
 interface CartItemsSectionProps {
   items: CartItem[];
-  selectedItems: Set<string>;
-  onSelectItem: (itemId: string) => void;
-  onSelectAll: (select: boolean) => void;
   onUpdateQuantity?: (itemId: string, quantity: number) => Promise<boolean>;
   onRemoveItem?: (itemId: string) => Promise<boolean>;
 }
 
 export function CartItemsSection({
   items,
-  selectedItems,
-  onSelectItem,
-  onSelectAll,
   onUpdateQuantity,
   onRemoveItem,
 }: CartItemsSectionProps) {
   const { updateQuantity, removeItem } = useCartStore();
+  const { convertAmount, formatPrice } = useCurrency();
 
-  // Use provided callbacks or fall back to Zustand methods
   const handleIncrement = async (item: CartItem) => {
     const newQuantity = item.quantity + 1;
     if (onUpdateQuantity) {
@@ -37,8 +32,6 @@ export function CartItemsSection({
       updateQuantity(item.id, newQuantity);
     }
   };
-
-//   console.log(items)
 
   const handleDecrement = async (item: CartItem) => {
     if (item.quantity > 1) {
@@ -59,33 +52,21 @@ export function CartItemsSection({
     }
   };
 
-  console.log("CartItemsSection - items:", items);
-
   return (
     <div className="bg-white rounded border">
-      {/* Header with Select All */}
-      <div className="bg-[#F5F5F5] flex items-center justify-between p-3 border-b">
+      {/* Header */}
+      <div className="bg-[#F5F5F5] p-3 border-b">
         <span className="flex items-center gap-2 font-semibold text-sm">
-          📦 ITEM
+          📦 Cart Items ({items.length})
         </span>
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={selectedItems.size === items.length && items.length > 0}
-            onChange={(e) => onSelectAll(e.target.checked)}
-            className="w-3 h-3 rounded border-gray-300 cursor-pointer"
-          />
-          <span className="text-sm font-semibold text-gray-700">
-            Select All ({items.length})
-          </span>
-        </div>
       </div>
 
       {/* Items List */}
       <div className="space-y-3 p-2 md:p-4">
         {items.map((item) => {
-          const isSelected = selectedItems.has(item.id);
           const subtotal = item.product.basePrice * item.quantity;
+          const convertedPrice = convertAmount(item.product.basePrice);
+          const convertedSubtotal = convertAmount(subtotal);
 
           // Extract variant preview image if variant is selected
           let variantImage: string | undefined;
@@ -110,26 +91,13 @@ export function CartItemsSection({
             }
           }
 
-          // Use variant image if available, otherwise fall back to product main image
           const displayImage = variantImage || item.product.mainImage;
 
           return (
             <div
               key={item.id}
-              className={`flex gap-2 p-2 border rounded transition ${
-                isSelected
-                  ? "bg-green-50 border-green-200"
-                  : "border-gray-200 bg-[#F5F5F5]"
-              }`}
+              className="flex gap-2 p-2 border rounded border-gray-200 bg-[#F5F5F5]"
             >
-              {/* Checkbox */}
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => onSelectItem(item.id)}
-                className="w-3 h-3 rounded border-gray-300 cursor-pointer mt-1 shrink-0"
-              />
-
               {/* Product Image (Variant Preview) */}
               <div className="relative w-20 h-20 rounded overflow-hidden bg-gray-100 shrink-0">
                 {displayImage ? (
@@ -154,14 +122,13 @@ export function CartItemsSection({
                     <h3 className="font-semibold text-gray-900 text-sm md:text-base line-clamp-1">
                       {item.product.name}
                     </h3>
-                    {/* Show variant details if available */}
                     {(variantColor || variantSize) && (
                       <p className="text-xs text-gray-500 mt-0.5">
                         {[variantColor, variantSize].filter(Boolean).join(" • ")}
                       </p>
                     )}
                     <p className="text-lg font-bold text-gray-900 mt-1">
-                      ${item.product.basePrice.toFixed(2)}
+                      {formatPrice(item.product.basePrice, convertedPrice)}
                     </p>
                   </div>
                   <button
@@ -172,10 +139,10 @@ export function CartItemsSection({
                   </button>
                 </div>
 
-                {/* Bottom Row: Subtotal + Quantity Controls on same line */}
+                {/* Bottom Row: Subtotal + Quantity Controls */}
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-gray-500">
-                    Subtotal: ${subtotal.toFixed(2)}
+                    Subtotal: {formatPrice(subtotal, convertedSubtotal)}
                   </p>
                   <div className="flex items-center gap-2">
                     <button

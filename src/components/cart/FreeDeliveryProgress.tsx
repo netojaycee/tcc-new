@@ -1,5 +1,7 @@
 "use client";
 
+import { useCurrency } from "@/lib/context/currency.context";
+
 interface FreeDeliveryProgressProps {
   subtotal: number;
   freeDeliveryThreshold?: number;
@@ -9,15 +11,17 @@ export function FreeDeliveryProgress({
   subtotal,
   freeDeliveryThreshold = 50,
 }: FreeDeliveryProgressProps) {
+  const { convertAmount, formatPrice } = useCurrency();
   const progressPercentage = Math.min((subtotal / freeDeliveryThreshold) * 100, 100);
   const remaining = Math.max(freeDeliveryThreshold - subtotal, 0);
+  const convertedRemaining = convertAmount(remaining);
 
   return (
     <div className="bg-white rounded-lg p-4 md:p-6 mb-6">
       <div className="flex items-center gap-3 mb-3">
         <span className="text-lg">🎁</span>
         <p className="text-sm font-semibold text-gray-900">
-          Spend ${remaining.toFixed(2)} extra to get free delivery
+          Spend {formatPrice(remaining, convertedRemaining)} extra to get free delivery
         </p>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-2">
