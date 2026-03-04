@@ -12,7 +12,8 @@ import {
 } from "@react-email/components";
 
 const BRAND_COLOR = "#0D9488";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pot-dev-mu.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tcc-new.vercel.app";
+const LOGO_URL = "https://tcc-new.vercel.app/logo.png";
 
 export const containerStyle = {
   maxWidth: "600px",
@@ -128,15 +129,27 @@ export default function EmailLayout({
         <Container style={containerStyle}>
           {/* Header */}
           <Section style={headerStyle}>
+            {/* Logo Image */}
+            <Img
+              src={LOGO_URL}
+              alt="Certified Christian"
+              style={{
+                height: "50px",
+                width: "auto",
+                marginBottom: "15px",
+                display: "block",
+                margin: "0 auto 15px auto",
+              }}
+            />
             <Text
               style={{
                 color: "#ffffff",
-                fontSize: "28px",
+                fontSize: "24px",
                 fontWeight: "bold",
                 margin: "0",
               }}
             >
-              🎁 POT Shop
+              Certified Christian
             </Text>
           </Section>
 
@@ -147,9 +160,9 @@ export default function EmailLayout({
           <Section style={footerStyle}>
             <Hr style={hrStyle} />
             <Text style={footerText}>
-              <strong>Place of Treasure</strong>
+              <strong>Certified Christian</strong>
               <br />
-              Premium Gifts & Curated Collections
+              Authentic Christian Apparel & Community
             </Text>
             <Text style={footerText}>
               <Link
@@ -173,7 +186,7 @@ export default function EmailLayout({
               </Link>
             </Text>
             <Text style={footerText}>
-              © 2026 Place of Treasure. All rights reserved.
+              © 2026 Certified Christian. All rights reserved.
             </Text>
             <Text style={{ ...footerText, marginTop: "15px", fontSize: "11px" }}>
               If you didn&apos;t request this email, please ignore it.

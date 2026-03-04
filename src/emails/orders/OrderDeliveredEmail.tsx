@@ -13,7 +13,7 @@ export default function OrderDeliveredEmail({
   orderNumber,
   orderId,
 }: OrderDeliveredEmailProps) {
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pot-dev-mu.vercel.app";
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tcc-new.vercel.app";
 
   return (
     <EmailLayout preview={`Your order #${orderNumber} has been delivered!`}>
@@ -107,9 +107,9 @@ export default function OrderDeliveredEmail({
           fontStyle: "italic",
         }}
       >
-        Thank you for choosing Place of Treasure! 🛍️
+        Thank you for choosing Certified Christian! ✨
         <br />
-        The POT Team
+        The Certified Christian Team
       </Text>
     </EmailLayout>
   );

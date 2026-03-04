@@ -102,7 +102,7 @@ export function RecipientAndAddressForm({
       // Call parent handler with order data
       toast.success("Address confirmed! Proceeding to payment...");
       onOrderCreated(
-        result.data.draftOrderId,
+        (result.data as any).orderNumber.toString().toLowerCase(),
         result.data.clientSecret,
         result.data
       );

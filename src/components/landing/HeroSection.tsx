@@ -5,10 +5,10 @@ import { BadgeCheck, Star } from "lucide-react";
 
 export function HeroSection() {
   return (
-    <section className="px-0 py-0 md:py-4">
-      <div className="w-full bg-muted md:rounded-md overflow-hidden">
+    <section className=" py-0 md:py-4 px-2 md:px-4 lg:px-16">
+      <div className="w-full md:rounded-md overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 items-stretch min-h-90">
-          <div className="relative order-2 md:order-1 h-64 sm:h-80 md:h-auto">
+          <div className="relative border order-2 md:order-1 h-64 md:h-full max-h-[80vh]">
             <Image
               src="/hero.png"
               alt="Custom products hero"
@@ -32,13 +32,13 @@ export function HeroSection() {
               </span>
             </p>
 
-            <h1 className="text-center md:text-left text-4xl md:text-6xl font-semibold leading-[0.95] tracking-tight text-foreground">
+            <h1 className="text-center md:text-left text-3xl md:text-4xl font-semibold leading-[0.95] tracking-tight text-foreground">
               custom products.
               <br />
               made easy.
             </h1>
 
-            <p className="text-center md:text-left text-foreground/70 text-lg md:text-2xl leading-[1.15] mt-4">
+            <p className="text-center md:text-left text-foreground/70 text-lg leading-[1.15] mt-4">
               choose from our ready-made designs or personalize any product in
               minutes
             </p>
@@ -46,13 +46,13 @@ export function HeroSection() {
             <div className="mt-6">
               <Button
                 asChild
-                className="w-full md:w-auto md:min-w-[320px] h-12 text-lg"
+                className="w-full h-10 text-sm rounded"
               >
                 <Link href="/products">Explore Products</Link>
               </Button>
             </div>
 
-            <p className="mt-3 flex items-center justify-center md:justify-start gap-2 text-base text-foreground/70">
+            <p className="mt-3 flex items-center justify-center  gap-2 text-base text-foreground/70">
               <BadgeCheck className="h-4 w-4 text-primary" />
               Realistic previews, quality prints, and reliable delivery
             </p>

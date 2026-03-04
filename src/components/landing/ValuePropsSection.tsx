@@ -1,11 +1,11 @@
-import { BadgePercent, Palette, Truck } from "lucide-react";
+import { BadgePercent, NotebookPen, Palette, Truck } from "lucide-react";
 
 const valueProps = [
   {
     title: "Quality selection",
     description:
       "Apparel, accessories, home and living goods. Make custom designs, from superb embroidery to vivid prints.",
-    Icon: Palette,
+    Icon: NotebookPen,
   },
   {
     title: "Good discounts",
@@ -29,7 +29,7 @@ export function ValuePropsSection() {
             key={title}
             className="rounded-md bg-muted px-5 py-6 md:px-6 md:py-7 flex flex-col items-center text-center"
           >
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-md border border-border bg-background">
+            <div className="bg-[#FFE90A17] mb-4 flex h-14 w-14 items-center justify-center rounded border-2 border-dashed">
               <Icon className="h-6 w-6 text-amber-600" />
             </div>
 

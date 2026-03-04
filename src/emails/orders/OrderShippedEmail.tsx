@@ -19,7 +19,7 @@ export default function OrderShippedEmail({
   carrierName,
   estimatedDelivery,
 }: OrderShippedEmailProps) {
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pot-dev-mu.vercel.app";
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tcc-new.vercel.app";
 
   return (
     <EmailLayout preview={`Your order #${orderNumber} has shipped!`}>
@@ -133,7 +133,7 @@ export default function OrderShippedEmail({
       >
         We hope you enjoy your order! 🎁
         <br />
-        The POT Team
+        The Certified Christian Team
       </Text>
     </EmailLayout>
   );

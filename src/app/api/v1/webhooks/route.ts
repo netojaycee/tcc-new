@@ -237,11 +237,11 @@ export async function POST(request: NextRequest) {
             firstName: order.firstName,
             orderNumber: order.orderNumber,
             orderId: order.id,
-            orderTotal: order.total,
+            orderTotal: order.costs.total,
             itemCount: order.items.length,
+            currency: order.currency || "",
             deliveryAddress: order.deliveryAddress,
             customerEmail: order.email,
-            // deliveryAddress: `${(order.deliveryAddress as any)?.street}, ${(order.deliveryAddress as any)?.city}, ${(order.deliveryAddress as any)?.state} ${(order.deliveryAddress as any)?.zip}`,
           });
           console.log(`Sent order confirmation email to ${order.email}`);
         }

@@ -178,6 +178,7 @@ export async function sendOrderConfirmationEmail({
   orderId,
   orderTotal,
   itemCount,
+  currency,
   deliveryAddress,
   customerEmail,
 }: {
@@ -186,6 +187,7 @@ export async function sendOrderConfirmationEmail({
   orderId: string;
   orderTotal: number;
   itemCount: number;
+  currency: string;
   deliveryAddress: { street: string; city: string; state?: string; zip: string; country: string };
   customerEmail: string;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
@@ -202,6 +204,7 @@ export async function sendOrderConfirmationEmail({
       orderId,
       orderTotal,
       itemCount,
+      currency,
       deliveryAddress,
     }),
   });

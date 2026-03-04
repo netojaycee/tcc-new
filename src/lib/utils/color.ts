@@ -45,4 +45,7 @@ export const COLOR_HEX_MAP: Record<string, string> = {
   "dark grey": "#A9A9A9",
   lavender: "#C4C3D0",
   "off white": "#FAF9F6",
+  "green camo": "#78866B",
+  "blue camo": "#536878",
+  "pink camo": "#D8BFD8",
 };

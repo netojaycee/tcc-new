@@ -234,8 +234,10 @@ export async function checkoutUnifiedAction(input: {
 
     // ========== CREATE DRAFT ORDER IN DB ==========
     let draftOrderId: string;
+    let orderNumber: string;
+    let newOrder: {draftOrderId: string; orderNumber: string};
     try {
-      draftOrderId = await orderService.createDraftOrder({
+      newOrder = await orderService.createDraftOrder({
         email: validated.data.email,
         firstName: validated.data.firstName,
         lastName: validated.data.lastName,
@@ -267,7 +269,7 @@ export async function checkoutUnifiedAction(input: {
     try {
       // Use the user's currency (already converted amounts are in this currency)
       const paymentResult = await paymentService.createPaymentIntent({
-        orderId: draftOrderId,
+        orderId: newOrder.draftOrderId,
         amount: finalCosts.total,
         email: validated.data.email,
         currency: validated.data.currency,
@@ -287,7 +289,7 @@ export async function checkoutUnifiedAction(input: {
       // shippingRates is order-specific data from Printful, save for checkout display
       // clientSecret is now saved in Payment model by paymentService.createPaymentIntent()
       await prisma.order.update({
-        where: { id: draftOrderId },
+        where: { id: newOrder.draftOrderId },
         data: {
           shippingRates: shippingRates.length > 0 ? (shippingRates as any) : null,
         },
@@ -305,7 +307,8 @@ export async function checkoutUnifiedAction(input: {
     return {
       success: true,
       data: {
-        draftOrderId,
+        draftOrderId: newOrder.draftOrderId,
+        orderNumber: newOrder.orderNumber,
         clientSecret,
         email: validated.data.email,
         firstName: validated.data.firstName,

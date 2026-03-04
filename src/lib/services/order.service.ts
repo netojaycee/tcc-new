@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
 import { redis } from "@/lib/redis";
 import { z } from "zod";
-import { printfulService } from "@/lib/services/printful.service";
 
 const CACHE_TTL = 1800; // 30 minutes for orders
 
@@ -69,50 +68,8 @@ async function invalidateOrderCache(userId?: string) {
   }
 }
 
-// Helper: Calculate tax based on delivery address country
-// DEPRECATED: Now using Printful API for tax calculation
-// Kept for reference only
-function calculateTax(subtotal: number, country: string): number {
-  const taxRates: Record<string, number> = {
-    "united kingdom": 0.2, // UK VAT 20%
-    uk: 0.2,
-    "united states": 0.0, // US: varies by state, for now 0 (apply state tax separately if needed)
-    us: 0.0,
-    usa: 0.0,
-    canada: 0.05, // Canada: GST 5% (provinces add PST)
-    australia: 0.1, // Australia: GST 10%
-  };
 
-  const normalized = country.toLowerCase().trim();
-  const taxRate = taxRates[normalized] || 0;
 
-  return Math.round(subtotal * taxRate * 100) / 100;
-}
-
-// Helper: Calculate shipping fee based on subtotal and country
-// DEPRECATED: Now using Printful API for shipping calculation
-// Kept for reference only
-function calculateShipping(subtotal: number, country: string): number {
-  const normalized = country.toLowerCase().trim();
-
-  // Free shipping on orders over £50
-  if (subtotal >= 50) {
-    return 0;
-  }
-
-  // Shipping rates by region
-  const shippingRates: Record<string, number> = {
-    "united kingdom": 4.99,
-    uk: 4.99,
-    "united states": 9.99,
-    us: 9.99,
-    usa: 9.99,
-    canada: 7.99,
-    australia: 14.99,
-  };
-
-  return shippingRates[normalized] || 4.99; // Default
-}
 
 export const orderService = {
   // ============ READ OPERATIONS ============
@@ -177,7 +134,7 @@ export const orderService = {
     try {
       const order = await prisma.order.findFirst({
         where: {
-          OR: [{ id: idOrOrderNumber }, { orderNumber: idOrOrderNumber }],
+          OR: [{ id: idOrOrderNumber }, { orderNumber: idOrOrderNumber.toString().toUpperCase() }],
         },
         include: {
           items: {
@@ -228,6 +185,7 @@ export const orderService = {
           firstName: order.firstName || "",
           lastName: order.lastName || "",
           deliveryAddress: deliveryAddress,
+          currency: order.currency,
           status: order.status,
           orderNumber: order.orderNumber,
           createdAt: order.createdAt,
@@ -328,7 +286,7 @@ export const orderService = {
     userId?: string;
     sessionId?: string;
     shippingRates?: any[]; // Save shipping rates to order
-  }): Promise<string> {
+  }): Promise<{ draftOrderId: string; orderNumber: string }> {
     try {
       const order = await prisma.order.create({
         data: {
@@ -368,7 +326,7 @@ export const orderService = {
         await invalidateOrderCache(data.userId);
       }
 
-      return order.id;  // Return UUID, not orderNumber
+      return { draftOrderId: order.id, orderNumber: order.orderNumber };  // Return UUID and orderNumber
     } catch (error) {
       console.error("Create draft order error:", error);
       throw new Error("Failed to create draft order");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCurrency } from "@/lib/context/currency.context";
 import { useCart } from "@/lib/hooks/use-cart";
@@ -25,6 +25,7 @@ function OrderConfirmationContent() {
   const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(true);
+  const hasCleared = useRef(false);
 
   // Fetch order when orderId is available
   useEffect(() => {
@@ -48,9 +49,10 @@ function OrderConfirmationContent() {
     fetchOrder();
   }, [orderId, router]);
 
-  // Clear cart when order is successfully loaded
+  // Clear cart when order is successfully loaded (only once)
   useEffect(() => {
-    if (order && !error) {
+    if (order && !error && !hasCleared.current) {
+      hasCleared.current = true;
       clearCart();
     }
   }, [order, error, clearCart]);

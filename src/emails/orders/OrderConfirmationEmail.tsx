@@ -14,6 +14,7 @@ interface OrderConfirmationEmailProps {
   orderId: string;
   orderTotal: number;
   itemCount: number;
+  currency: string;
   deliveryAddress: {
     street: string;
     city: string;
@@ -29,10 +30,11 @@ export default function OrderConfirmationEmail({
   orderId,
   orderTotal,
   itemCount,
+  currency,
   deliveryAddress,
 }: OrderConfirmationEmailProps) {
   const APP_URL =
-    process.env.NEXT_PUBLIC_APP_URL || "https://pot-dev-mu.vercel.app";
+    process.env.NEXT_PUBLIC_APP_URL || "https://tcc-new.vercel.app";
 
   return (
     <EmailLayout preview={`Your order #${orderNumber} has been confirmed`}>
@@ -103,7 +105,7 @@ export default function OrderConfirmationEmail({
               margin: 0,
             }}
           >
-            CAD {orderTotal.toFixed(2)}
+            {currency.toUpperCase()} {typeof orderTotal === "number" && !isNaN(orderTotal) ? orderTotal.toFixed(2) : "0.00"}
           </Text>
         </div>
 
@@ -136,7 +138,7 @@ export default function OrderConfirmationEmail({
       </Text>
 
       <Section style={{ textAlign: "center" as const, marginTop: "30px" }}>
-        <Link href={`${APP_URL}/orders/${orderId}`} style={buttonStyle}>
+        <Link href={`${APP_URL}/orders/${orderNumber}`} style={buttonStyle}>
           Track Your Order
         </Link>
       </Section>
@@ -161,9 +163,9 @@ export default function OrderConfirmationEmail({
           fontStyle: "italic",
         }}
       >
-        Thank you for shopping with Place of Treasure! 🛍️
+        Thank you for your order! ✨
         <br />
-        The POT Team
+        The Certified Christian Team
       </Text>
     </EmailLayout>
   );
