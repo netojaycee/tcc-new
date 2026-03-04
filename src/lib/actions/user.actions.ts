@@ -171,7 +171,7 @@ export async function changePasswordAction(input: ChangePasswordInput) {
 export async function addAddressAction(data: {
   street: string;
   city: string;
-  state: string;
+  state?: string;
   zip: string;
   country: string;
   isDefault?: boolean;

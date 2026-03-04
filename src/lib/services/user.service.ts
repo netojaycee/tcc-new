@@ -251,7 +251,7 @@ export const userService = {
     data: {
       street: string;
       city: string;
-      state: string;
+      state?: string;
       zip: string;
       country: string;
       isDefault?: boolean;
@@ -267,7 +267,7 @@ export const userService = {
       }
 
       const address = await prisma.address.create({
-        data: { userId, ...data },
+        data: { userId, ...data, state: data.state || "" },
       });
 
       await invalidateUserCache(userId);
@@ -322,7 +322,7 @@ export const userService = {
 
       const updated = await prisma.address.update({
         where: { id: addressId },
-        data,
+        data: { ...data, state: data.state || "" },
       });
 
       await invalidateUserCache(userId);
