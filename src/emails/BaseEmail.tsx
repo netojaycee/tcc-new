@@ -11,7 +11,7 @@ import {
   Img,
 } from "@react-email/components";
 
-const BRAND_COLOR = "#0D9488";
+const BRAND_COLOR = "#4B89D5"; // Certified Christian Blue
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tcc-new.vercel.app";
 const LOGO_URL = "https://tcc-new.vercel.app/logo.png";
 
