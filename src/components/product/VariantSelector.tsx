@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,7 +11,54 @@ import {
 } from "@/components/ui/dialog";
 import { COLOR_HEX_MAP } from "@/lib/utils/color";
 
-// Color to hex mapping
+// Helper function to get hex color
+// Prioritizes color_code (Printful hex) over name-based lookup
+function getColorHex(color: string, colorCode?: string): string {
+  // Use color_code directly if available
+  if (colorCode && colorCode.trim() !== "") {
+    return colorCode;
+  }
+  // Fall back to looking up color name in COLOR_HEX_MAP
+  return (
+    COLOR_HEX_MAP.find(
+      (c: { name: string; hex: string }) =>
+        c.name.toLowerCase() === color.toLowerCase()
+    )?.hex || "#CCCCCC"
+  );
+}
+
+// Optimization 1: Image preloader utility
+function preloadImage(src: string): Promise<void> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => resolve(); // Resolve even on error to avoid blocking
+    img.src = src;
+  });
+}
+
+// Optimization 3: Simple debounce helper
+function useDebounce<T>(value: T, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delayMs);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [value, delayMs]);
+
+  return debouncedValue;
+}
 
 export interface Variant {
   id: number;
@@ -19,6 +66,7 @@ export interface Variant {
   name: string;
   size: string;
   color: string;
+  color_code?: string; // Hex color code from Printful (e.g., "#14191e")
   variant_id?: number;
   image?: string;
   files?: Array<{
@@ -41,6 +89,18 @@ export function VariantSelector({
   onVariantSelect,
 }: VariantSelectorProps) {
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  // console.log("Received variants:", variants);
+
+  // Optimization 1: Preload all variant images on mount
+  useEffect(() => {
+    variants.forEach((variant) => {
+      if (variant.image) {
+        preloadImage(variant.image).catch(() => {
+          // Silently handle preload failures
+        });
+      }
+    });
+  }, [variants]);
 
   // Group variants by color
   const colorOptions = useMemo(() => {
@@ -72,14 +132,51 @@ export function VariantSelector({
   );
   const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
 
+  // Optimization 2: Memoize size calculation with useCallback
+  const getSizesForColor = useCallback(
+    (colorName: string) => {
+      if (!colorName) return [];
+      const colorVariants = colorOptions.get(colorName) || [];
+      const sizes = new Set<string>();
+      colorVariants.forEach((v) => sizes.add(v.size));
+      return Array.from(sizes);
+    },
+    [colorOptions],
+  );
+
   // Get sizes for selected color
-  const sizeOptions = useMemo(() => {
-    if (!selectedColor) return [];
+  const sizeOptions = useMemo(
+    () => getSizesForColor(selectedColor || ""),
+    [selectedColor, getSizesForColor],
+  );
+
+  // Get selected variant
+  const selectedVariant = useMemo(() => {
+    if (!selectedColor || !selectedSize) return null;
     const colorVariants = colorOptions.get(selectedColor) || [];
-    const sizes = new Set<string>();
-    colorVariants.forEach((v) => sizes.add(v.size));
-    return Array.from(sizes);
-  }, [selectedColor, colorOptions]);
+    return colorVariants.find((v) => v.size === selectedSize) || null;
+  }, [selectedColor, selectedSize, colorOptions]);
+
+  // Optimization 4: Lazy load images for selected color variants only
+  // Debounce to avoid excessive preloading during rapid color changes
+  const debouncedSelectedColor = useDebounce(selectedColor, 10);
+
+  useEffect(() => {
+    if (debouncedSelectedColor) {
+      // Preload images only for variants of the selected color
+      const colorVariants = colorOptions.get(debouncedSelectedColor) || [];
+      colorVariants.forEach((variant) => {
+        if (variant.image) {
+          preloadImage(variant.image).catch(() => {
+            // Silently handle preload failures
+          });
+        }
+      });
+    }
+  }, [debouncedSelectedColor, colorOptions]);
+
+  // Optimization 3: Debounce variant selection to smooth image transitions
+  const debouncedSelectedVariant = useDebounce(selectedVariant, 100);
 
   // Update size when color changes
   // When color changes, sizeOptions changes, so we need to ensure selectedSize is valid
@@ -91,19 +188,12 @@ export function VariantSelector({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sizeOptions]);
 
-  // Get selected variant
-  const selectedVariant = useMemo(() => {
-    if (!selectedColor || !selectedSize) return null;
-    const colorVariants = colorOptions.get(selectedColor) || [];
-    return colorVariants.find((v) => v.size === selectedSize) || null;
-  }, [selectedColor, selectedSize, colorOptions]);
-
-  // Notify parent when variant is selected
+  // Notify parent when variant is selected (with debounced variant to smooth transitions)
   useEffect(() => {
-    if (selectedVariant) {
-      onVariantSelect(selectedVariant);
+    if (debouncedSelectedVariant) {
+      onVariantSelect(debouncedSelectedVariant);
     }
-  }, [selectedVariant, onVariantSelect]);
+  }, [debouncedSelectedVariant, onVariantSelect]);
 
   return (
     <div className="space-y-4 border-b pb-4">
@@ -119,7 +209,9 @@ export function VariantSelector({
         </label>
         <div className="flex flex-wrap gap-3">
           {uniqueColors.map((color) => {
-            const hexColor = COLOR_HEX_MAP.find((c: {name: string; hex: string}) => c.name.toLowerCase() === color.toLowerCase())?.hex || "#CCCCCC";
+            // Get hex color code from variant's color_code if available, otherwise map from color name
+            const firstVariantWithColor = colorOptions.get(color)?.[0];
+            const hexColor = getColorHex(color, firstVariantWithColor?.color_code);
             const isSelected = selectedColor === color;
 
             return (

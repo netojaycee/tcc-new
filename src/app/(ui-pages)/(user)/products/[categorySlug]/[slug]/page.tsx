@@ -33,7 +33,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const product = result.data;
 
 
-  console.log(product, "product");
+  // console.log(product, "product");
 
   // Fetch real reviews
   const reviewsResult = await getProductReviewsAction(product.id, 10, 0);

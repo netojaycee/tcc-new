@@ -51,52 +51,7 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-// model Product {
-//   id String @id @default(cuid())
 
-//   // Basic product info
-//   name        String
-//   description String?
-//   slug        String  @unique
-
-//   // Pricing
-//   basePrice Float // Retail price we charge customers
-//   baseCost  Float? // Cost from Printful (for margin tracking)
-
-//   // Printful Store Product Link
-//   printfulStoreProductId String @unique // Printful's store product ID
-//   printfulCatalogId      Int // Which catalog item it's based on (e.g., 1 for t-shirt)
-
-//   // Product metadata
-//   type  ProductSourceType // store or catalog
-//   brand String?
-
-//   // Visuals
-//   mainImage String?
-//   mockups   Json? // [{url: string, variant_label: string}]
-//   gallery   String[]
-
-//   // Product variants (sizes, colors, materials)
-//   variants Json // [{id, label, color, size, price, cost}]
-
-//   // Print/Customization areas
-//   printAreas         Json? // [{name, type, position}]
-//   allowCustomization Boolean @default(true) // Can users customize?
-
-//   // Status & sync
-//   active   Boolean   @default(true)
-//   syncedAt DateTime?
-
-//   // Relations
-//   cartItems     CartItem[]
-//   orderItems    OrderItem[]
-//   wishlistItems WishlistItem[]
-//   reviews       Review[]
-//   recentViews   RecentView[]
-
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-// }
 
 model Product {
   id String @id @default(cuid())
