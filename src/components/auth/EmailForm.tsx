@@ -91,7 +91,7 @@ export default function EmailForm({ type = 'forgot-password' }: any) {
                       placeholder='example@gmail.com'
                       {...field}
                       disabled={isPending}
-                      className='pl-10 border-gray-300 focus:border-teal-500 focus:ring-teal-500'
+                      className='pl-10 border-gray-300 focus:border-primary focus:ring-primary'
                     />
                   </FormControl>
                   <Mail className='w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700' />
@@ -105,7 +105,7 @@ export default function EmailForm({ type = 'forgot-password' }: any) {
           <Button
             type='submit'
             disabled={isPending}
-            className='w-full flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white'
+            className='w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/80 text-white'
           >
             {isPending ? (
               <>

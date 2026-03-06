@@ -1,10 +1,5 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { getUserOrdersAction } from "@/lib/actions/order.actions";
-import { OrderCard } from "@/components/orders/OrderCard";
-import { Skeleton } from "@/components/ui/skeleton";
+import { OrdersTabView } from "@/components/orders/OrdersTabView";
 import Link from "next/link";
 
 interface Order {
@@ -17,60 +12,17 @@ interface Order {
   currency?: string;
 }
 
-export default function AllOrdersPage() {
-  const router = useRouter();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default async function AllOrdersPage() {
+  const result = await getUserOrdersAction(50, 0);
+  const orders = result.success ? ((result as any)?.data?.orders || []) : [];
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      try {
-        const result = await getUserOrdersAction(50, 0);
-
-        if (result.success) {
-          setOrders(((result as any)?.data as any)?.orders);
-        } else {
-          setError(result.error || "Failed to fetch orders");
-        }
-      } catch (err) {
-        console.error("Error fetching orders:", err);
-        setError("Failed to load orders");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen px-4 lg:px-16 py-8 bg-white">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">My Orders</h1>
-        <div className="space-y-4 max-w-4xl">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 rounded-lg" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
+  if (!result.success) {
     return (
       <div className="min-h-screen px-4 lg:px-16 py-8 bg-white">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">My Orders</h1>
         <div className="max-w-4xl">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-600">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium"
-            >
-              Try Again
-            </button>
+            <p className="text-red-600">{result.error || "Failed to fetch orders"}</p>
           </div>
         </div>
       </div>
@@ -86,7 +38,7 @@ export default function AllOrdersPage() {
             <p className="text-gray-600 mb-6">You haven&apos;t placed any orders yet</p>
             <Link
               href="/"
-              className="inline-block px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium"
+              className="inline-block px-6 py-3 bg-primary hover:bg-primary/80 text-white rounded-lg font-medium"
             >
               Start Shopping
             </Link>
@@ -99,21 +51,7 @@ export default function AllOrdersPage() {
   return (
     <div className="min-h-screen px-4 lg:px-16 py-8 bg-white">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">My Orders</h1>
-
-      <div className="max-w-4xl space-y-4">
-        {orders.map((order) => (
-          <OrderCard
-            key={order.id}
-            id={order.id}
-            orderNumber={order.orderNumber}
-            status={order.status}
-            createdAt={order.createdAt}
-            total={order.total}
-            itemCount={order.items?.length || 0}
-            currency={order.currency}
-          />
-        ))}
-      </div>
+      <OrdersTabView orders={orders} />
     </div>
   );
 }

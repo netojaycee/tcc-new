@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import { redis } from "@/lib/redis";
-import { hashPassword, verifyPassword } from "@/lib/auth";
+import { hashPassword, verifyPassword } from "@/lib/utils";
+import { cloudinaryService } from "@/lib/services/cloudinary.service";
 import { z } from "zod";
+import { changePasswordSchema, updateProfileSchema } from "../schema";
 
 const CACHE_TTL = 3600; // 1 hour
 
@@ -11,16 +13,7 @@ export type UserResult<T> =
   | { success: false; error: string; code: string };
 
 // Validation Schemas
-export const updateProfileSchema = z.object({
-  firstName: z.string().min(1, "First name required").optional(),
-  lastName: z.string().min(1, "Last name required").optional(),
-  image: z.string().url().optional(),
-});
 
-export const changePasswordSchema = z.object({
-  currentPassword: z.string(),
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-});
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
@@ -58,6 +51,7 @@ export const userService = {
         firstName: true,
         lastName: true,
         email: true,
+        phone: true,
         role: true,
         verified: true,
         image: true,
@@ -99,7 +93,7 @@ export const userService = {
   /**
    * Get user profile (authenticated)
    */
-  async getProfile(userId: string): Promise<UserResult<any>> {
+  async getProfile(userId: string): Promise<any> {
     try {
       const user = await this.getUserById(userId);
       if (!user) {
@@ -144,18 +138,50 @@ export const userService = {
   /**
    * Update user profile
    */
-  async updateProfile(userId: string, data: UpdateProfileInput): Promise<UserResult<any>> {
+  async updateProfile(
+    userId: string,
+    data: UpdateProfileInput,
+    imageFile?: File,
+    oldImagePubId?: string,
+  ): Promise<any> {
     try {
       const validated = updateProfileSchema.parse(data);
+      let imageData: { pubId: string; secureUrl: string } | null = null;
+
+      // Handle image upload if provided
+      if (imageFile) {
+        const uploadResult = await cloudinaryService.replaceImage(
+          imageFile,
+          oldImagePubId,
+          "user-profiles",
+        );
+
+        if (!uploadResult.success) {
+          return {
+            success: false,
+            error: uploadResult.error,
+            code: "UPLOAD_ERROR",
+          };
+        }
+
+        imageData = uploadResult.data;
+      }
+
+      // Update user with profile data and image
+      const updateData: any = { ...validated };
+      if (imageData) {
+        updateData.image = imageData;
+      }
 
       const user = await prisma.user.update({
         where: { id: userId },
-        data: validated,
+        data: updateData,
         select: {
           id: true,
           firstName: true,
           lastName: true,
           email: true,
+          phone: true,
           image: true,
           role: true,
           verified: true,
@@ -176,7 +202,8 @@ export const userService = {
       console.error("Update profile error:", error);
       return {
         success: false,
-        error: "Failed to update profile",
+        error:
+          error instanceof Error ? error.message : "Failed to update profile",
         code: "UPDATE_ERROR",
       };
     }
@@ -185,7 +212,10 @@ export const userService = {
   /**
    * Change password
    */
-  async changePassword(userId: string, data: ChangePasswordInput): Promise<UserResult<any>> {
+  async changePassword(
+    userId: string,
+    data: ChangePasswordInput,
+  ): Promise<UserResult<any>> {
     try {
       const validated = changePasswordSchema.parse(data);
 
@@ -204,7 +234,10 @@ export const userService = {
       }
 
       // Verify current password
-      const isValid = await verifyPassword(validated.currentPassword, user.password);
+      const isValid = await verifyPassword(
+        validated.currentPassword,
+        user.password,
+      );
       if (!isValid) {
         return {
           success: false,
@@ -255,7 +288,7 @@ export const userService = {
       zip: string;
       country: string;
       isDefault?: boolean;
-    }
+    },
   ): Promise<UserResult<any>> {
     try {
       // If this is default, unset other defaults
@@ -296,7 +329,7 @@ export const userService = {
       zip: string;
       country: string;
       isDefault: boolean;
-    }>
+    }>,
   ): Promise<UserResult<any>> {
     try {
       // Verify address belongs to user
@@ -341,7 +374,10 @@ export const userService = {
   /**
    * Delete address
    */
-  async deleteAddress(userId: string, addressId: string): Promise<UserResult<any>> {
+  async deleteAddress(
+    userId: string,
+    addressId: string,
+  ): Promise<UserResult<any>> {
     try {
       // Verify address belongs to user
       const address = await prisma.address.findUnique({

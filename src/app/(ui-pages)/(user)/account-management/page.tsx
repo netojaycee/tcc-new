@@ -1,87 +1,58 @@
 "use client";
 
-import Link from "next/link";
-import { User, MapPin, Shield, LogOut } from "lucide-react";
-
-const sections = [
-  {
-    title: "Profile",
-    description: "Edit your personal information",
-    icon: User,
-    href: "/account-management/profile",
-    color: "bg-blue-50 text-blue-600",
-  },
-  {
-    title: "Delivery Addresses",
-    description: "Manage your saved delivery locations",
-    icon: MapPin,
-    href: "/account-management/delivery-addresses",
-    color: "bg-green-50 text-green-600",
-  },
-  {
-    title: "Account Security",
-    description: "Change password and manage 2FA",
-    icon: Shield,
-    href: "/account-management/account-security",
-    color: "bg-purple-50 text-purple-600",
-  },
-];
+import { LayoutDashboard, Settings } from "lucide-react";
 
 export default function AccountSettingsPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-          Account Settings
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Manage your account information and preferences
-        </p>
-      </div>
 
-      {/* Settings Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-        {sections.map((section) => {
-          const Icon = section.icon;
-          return (
-            <Link
-              key={section.href}
-              href={section.href}
-              className="block p-6 border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-md transition group"
-            >
-              <div className={`w-12 h-12 rounded-lg ${section.color} flex items-center justify-center mb-4 group-hover:scale-110 transition`}>
-                <Icon className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition">
-                {section.title}
-              </h3>
-              <p className="text-sm text-gray-600 mt-2">
-                {section.description}
-              </p>
-              <div className="mt-4 text-sm font-medium text-blue-600 group-hover:translate-x-1 transition">
-                Go →
-              </div>
-            </Link>
-          );
-        })}
+      <div className="flex items-center gap-2 p-2 bg-[#FAFAFA] border border-gray-200">
+        <LayoutDashboard className="w-4 h-4 text-gray-600 shrink-0" />
+        <h2 className="text-sm font-semibold text-gray-900 uppercase">
+        Dashboard
+        </h2>
       </div>
-
-      {/* Danger Zone */}
-      <div className="mt-12 pt-8 border-t border-gray-200">
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-start gap-4">
-            <LogOut className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-red-900">Log out</h3>
-              <p className="text-sm text-red-800 mt-1">
-                Sign out from your account
-              </p>
-              <button className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition">
-                Log out from this device
-              </button>
+      <div className="space-y-4 p-4 md:p-6">
+        {/* Welcome Header */}
+        <div className="text-center py-8 max-w-2xl mx-auto">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-blue-50 rounded-lg flex items-center justify-center">
+              <Settings className="w-8 h-8 text-blue-600" />
             </div>
           </div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Welcome to Your Account
+          </h1>
+          <p className="text-gray-600 mt-4 text-lg">
+            Manage your profile, security settings, and delivery preferences
+            from the menu on the left.
+          </p>
+        </div>
+
+        {/* Quick Stats or Info */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
+          <div className="p-6 bg-blue-50 rounded-lg border border-blue-100">
+            <div className="text-2xl font-bold text-blue-600 mb-2">100%</div>
+            <p className="text-sm text-gray-700">Profile Completion</p>
+          </div>
+          <div className="p-6 bg-green-50 rounded-lg border border-green-100">
+            <div className="text-2xl font-bold text-green-600 mb-2">2FA</div>
+            <p className="text-sm text-gray-700">Security Enabled</p>
+          </div>
+          <div className="p-6 bg-purple-50 rounded-lg border border-purple-100">
+            <div className="text-2xl font-bold text-purple-600 mb-2">3</div>
+            <p className="text-sm text-gray-700">Saved Addresses</p>
+          </div>
+        </div>
+
+        {/* Info Box */}
+        <div className="mt-12 p-6 bg-gray-50 rounded-lg border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-2">Account Tip</h3>
+          <p className="text-sm text-gray-600">
+            Keep your account secure by regularly updating your password and
+            enabling two-factor authentication in the Account Security section.
+          </p>
         </div>
       </div>
     </div>

@@ -51,3 +51,24 @@ export async function detectUserCountryAction(): Promise<{
     };
   }
 }
+
+/**
+ * Server action to get exchange rate for a currency
+ * This must be a server action because it accesses Redis
+ */
+export async function getExchangeRateAction(
+  currencyCode: string
+): Promise<number | null> {
+  try {
+    console.log(
+      "[Currency Action] Getting exchange rate for",
+      currencyCode
+    );
+    const rate = await currencyService.getExchangeRate(currencyCode);
+    console.log("[Currency Action] Exchange rate result:", rate);
+    return rate;
+  } catch (error) {
+    console.error("[Currency Action] Error getting exchange rate:", error);
+    return null;
+  }
+}

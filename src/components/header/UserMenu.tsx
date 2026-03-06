@@ -64,7 +64,7 @@ export default function UserMenu({ user }: UserMenuProps) {
                 Recently Viewed
               </Link>
               <Link
-                href='/account'
+                href='/account-management'
                 className='block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-200'
                 onClick={() => setIsOpen(false)}
               >

@@ -18,6 +18,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Button } from "@/components/ui/button";
 
 /**
  * Cart Page
@@ -100,12 +101,12 @@ export default function CartPage() {
         <div className="max-w-7xl mx-auto px-4 py-12 text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Your Cart</h1>
           <p className="text-red-600 mb-4">{error}</p>
-          <button
+          <Button
             onClick={refetch}
-            className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-3 rounded-lg"
+            // className="inline-block bg-primary text-white font-semibold px-6 py-3 rounded-lg"
           >
             Try Again
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -120,7 +121,7 @@ export default function CartPage() {
           <p className="text-gray-600 mb-8">Your cart is empty</p>
           <Link
             href="/"
-            className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-3 rounded-lg"
+            className="inline-block bg-primary hover:bg-primary/80 text-white font-semibold px-6 py-3 rounded-lg"
           >
             Continue Shopping
           </Link>

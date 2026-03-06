@@ -20,14 +20,14 @@ import {
 } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2, Phone, Mail, MapPin } from "lucide-react";
 import {
   checkoutFormSchema,
   type CheckoutFormInput,
 } from "@/lib/schema/checkout.schema";
-import { useCheckoutData } from "@/lib/hooks/use-checkout";
+import { getProfileAction } from "@/lib/actions/user.actions";
 import { useCountries, useStatesByCountry } from "@/lib/hooks/use-countries";
 import { useCurrency } from "@/lib/context/currency.context";
 import { checkoutUnifiedAction } from "@/lib/actions/checkout-unified.actions";
@@ -47,8 +47,9 @@ export function RecipientAndAddressForm({
 }: RecipientAndAddressFormProps) {
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [isPending, setIsPending] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasPhone, setHasPhone] = useState(false);
   
-  const checkoutData = useCheckoutData();
   const { countries, isLoadingCountries } = useCountries();
   const { states, isLoadingStates } = useStatesByCountry(
     selectedCountry || null
@@ -59,9 +60,9 @@ export function RecipientAndAddressForm({
     resolver: zodResolver(checkoutFormSchema) as any,
     mode: "onChange",
     defaultValues: {
-      email: checkoutData.email || "",
-      firstName: checkoutData.firstName || "",
-      lastName: checkoutData.lastName || "",
+      email: "",
+      firstName: "",
+      lastName: "",
       phone: "",
       deliveryAddress: {
         street: "",
@@ -72,6 +73,43 @@ export function RecipientAndAddressForm({
       },
     },
   });
+
+  // Fetch user profile on component mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const result = await getProfileAction();
+        if (result.success && result.data) {
+          const profile = result.data as any;
+          
+          setIsLoggedIn(true);
+          setHasPhone(!!profile.phone);
+          
+          // Pre-fill form with user data
+          form.reset({
+            email: profile.email || "",
+            firstName: profile.firstName || "",
+            lastName: profile.lastName || "",
+            phone: profile.phone || "",
+            deliveryAddress: {
+              street: "",
+              city: "",
+              state: "",
+              zip: "",
+              country: "",
+            },
+          });
+        } else {
+          setIsLoggedIn(false);
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+        setIsLoggedIn(false);
+      }
+    };
+
+    fetchProfile();
+  }, [form]);
 
   async function onSubmit(data: FormData) {
     setIsPending(true);
@@ -114,28 +152,6 @@ export function RecipientAndAddressForm({
     }
   }
 
-  // Loading state
-  if (checkoutData.loading) {
-    return (
-      <div className="border bg-[#f5f5f5]">
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (checkoutData.error) {
-    return (
-      <div className="border bg-[#f5f5f5]">
-        <div className="py-8">
-          <p className="text-red-600">{checkoutData.error}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -160,7 +176,7 @@ export function RecipientAndAddressForm({
                       type="email"
                       placeholder="your@email.com"
                       {...field}
-                      disabled={isPending}
+                      disabled={isPending || isLoggedIn}
                     />
                   </FormControl>
                   <FormMessage />
@@ -180,7 +196,7 @@ export function RecipientAndAddressForm({
                       <Input
                         placeholder="John"
                         {...field}
-                        disabled={isPending}
+                        disabled={isPending || isLoggedIn}
                       />
                     </FormControl>
                     <FormMessage />
@@ -198,7 +214,7 @@ export function RecipientAndAddressForm({
                       <Input
                         placeholder="Doe"
                         {...field}
-                        disabled={isPending}
+                        disabled={isPending || isLoggedIn}
                       />
                     </FormControl>
                     <FormMessage />
@@ -222,7 +238,7 @@ export function RecipientAndAddressForm({
                       type="tel"
                       placeholder="+1 (555) 000-0000"
                       {...field}
-                      disabled={isPending}
+                      disabled={isPending || hasPhone}
                     />
                   </FormControl>
                   <FormMessage />
@@ -406,7 +422,7 @@ export function RecipientAndAddressForm({
         <Button
           type="submit"
           disabled={isPending}
-          className="w-full bg-teal-600 hover:bg-teal-700 text-white text-base h-12 rounded-lg font-semibold flex items-center justify-center gap-2"
+          className="w-full bg-primary hover:bg-primary/80 text-white text-base h-12 rounded-lg font-semibold flex items-center justify-center gap-2"
         >
           {isPending ? (
             <>

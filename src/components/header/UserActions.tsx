@@ -13,7 +13,7 @@ export default async function UserActions() {
           asChild
           // className="text-sm font-normal transition-all hover:text-primary duration-300 hover:scale-105"
         >
-          <Link href="/auth/login">GET STARTED</Link>
+          <Link href="/auth/register">GET STARTED</Link>
         </Button>
       </div>
     );

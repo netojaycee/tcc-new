@@ -1,7 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { createId as cuid } from "@paralleldrive/cuid2";
 
 const SECRET_KEY = process.env.JWT_SECRET!;
@@ -31,13 +30,7 @@ export async function decrypt(input: string): Promise<any> {
   }
 }
 
-export async function hashPassword(password: string) {
-  return await bcrypt.hash(password, 10);
-}
 
-export async function verifyPassword(password: string, hash: string) {
-  return await bcrypt.compare(password, hash);
-}
 
 /**
  * Get current session (user or guest)

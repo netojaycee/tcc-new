@@ -1,92 +1,193 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, X, User, Lock, Package, Shield } from "lucide-react";
+import {
+  Menu,
+  User,
+  Package,
+  Shield,
+  LogOut,
+  ChevronRight,
+  Settings,
+  Settings2,
+  UserRoundX,
+  Loader2,
+} from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
+import { logoutAction } from "@/lib/actions/auth.actions";
+import { routerServerGlobal } from "next/dist/server/lib/router-utils/router-server-context";
+import { useRouter } from "next/navigation";
 
-const menuItems = [
+const mainMenuItems = [
+  {
+    label: "Dashboard",
+    href: "/account-management",
+    icon: User,
+    description: "Overview of your account",
+  },
   {
     label: "Profile",
     href: "/account-management/profile",
     icon: User,
     description: "Edit personal info about yourself",
   },
+  // {
+  //   label: "Delivery addresses",
+  //   href: "/account-management/delivery-addresses",
+  //   icon: Package,
+  //   description: "View saved addresses from past orders",
+  // },
   {
-    label: "Delivery Addresses",
-    href: "/account-management/delivery-addresses",
-    icon: Package,
-    description: "View saved delivery locations",
-  },
-  {
-    label: "Account Security",
-    href: "/account-management/account-security",
+    label: "Account security",
+    href: "/account-management/security",
     icon: Shield,
     description: "Change password, two factor auth, login device",
   },
 ];
 
-function AccountSidebar({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  const pathname = usePathname();
+const additionalMenuItems = [
+  {
+    label: "Delete account",
+    href: "/account-management/delete-account",
+    icon: UserRoundX,
+    description: "Close your account permanently",
+  },
+  {
+    label: "Log out",
+    href: "/account-management/logout",
+    icon: LogOut,
+    description: "Log out your account from this device",
+  },
+];
 
+// Sidebar Menu Content - Shared by Desktop and Mobile
+function SidebarMenuContent({
+  useSheetClose = false,
+  onLogout,
+  isLoading = false,
+}: {
+  useSheetClose?: boolean;
+  onLogout?: () => void;
+  isLoading?: boolean;
+}) {
+  const MenuLink = ({
+    item,
+    isLogout,
+  }: {
+    item: (typeof mainMenuItems)[0] | (typeof additionalMenuItems)[0];
+    isLogout?: boolean;
+  }) => {
+    const Icon = item.icon;
+
+    // Handle logout button
+    if (isLogout) {
+      const buttonElement = (
+        <button
+          onClick={onLogout}
+          className="w-full block p-2 border border-gray-200 rounded hover:border-gray-300 transition group text-left"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1">
+              {isLoading ? <Loader2 className="w-5 h-5 shrink-0 text-gray-600 animate-spin" /> : <Icon className="w-5 h-5 shrink-0 text-gray-600" />}
+              <div>
+                <h3 className="font-semibold text-sm text-gray-900">
+                  {item.label}
+                </h3>
+                <p className="text-xs text-gray-600 mt-1">{item.description}</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 shrink-0 mt-0.5 text-gray-400 group-hover:translate-x-0.5 transition" />
+          </div>
+        </button>
+      );
+
+      if (useSheetClose) {
+        return (
+          <SheetClose asChild key="logout">
+            {buttonElement}
+          </SheetClose>
+        );
+      }
+      return buttonElement;
+    }
+
+    // Regular link items
+    const linkElement = (
+      <Link
+        key={item.href}
+        href={item.href}
+        className="block p-2 border border-gray-200 rounded hover:border-gray-300 transition group"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-1">
+            <Icon className="w-5 h-5 shrink-0 text-gray-600" />
+            <div>
+              <h3 className="font-semibold text-sm text-gray-900">
+                {item.label}
+              </h3>
+              <p className="text-xs text-gray-600 mt-1">{item.description}</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 shrink-0 mt-0.5 text-gray-400 group-hover:translate-x-0.5 transition" />
+        </div>
+      </Link>
+    );
+
+    if (useSheetClose) {
+      return (
+        <SheetClose asChild key={item.href}>
+          {linkElement}
+        </SheetClose>
+      );
+    }
+
+    return linkElement;
+  };
   return (
     <>
-      {/* Mobile Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div
-        className={`fixed lg:static top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-40 transition-transform duration-300 lg:transition-none ${
-          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
-      >
-        <div className="p-4 lg:p-6 sticky top-0 bg-white border-b border-gray-100 lg:border-0">
-          <div className="flex items-center justify-between lg:justify-start">
-            <h2 className="font-semibold text-gray-900">Settings</h2>
-            <button
-              onClick={onClose}
-              className="lg:hidden p-1 hover:bg-gray-100 rounded-lg transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+      {/* Main Menu Section */}
+      <div className="space-y-4 border rounded mb-6 md:mb-10">
+        {/* SETTINGS Header Box */}
+        <div className="flex items-center gap-2 p-2 bg-[#FAFAFA] border border-gray-200">
+          <Settings className="w-4 h-4 text-gray-600 shrink-0" />
+          <h2 className="text-sm font-semibold text-gray-900">SETTINGS</h2>
         </div>
 
-        <nav className="p-4 lg:p-6 space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
+        {/* SETTINGS Nav Items */}
+        <nav className="space-y-3 p-2">
+          {mainMenuItems.map((item) => (
+            <MenuLink key={item.href} item={item} />
+          ))}
+        </nav>
+      </div>
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                  isActive
-                    ? "bg-blue-50 text-blue-600 border border-blue-200"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <Icon className="w-5 h-5 shrink-0" />
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{item.label}</div>
-                  <div className="text-xs text-gray-500">{item.description}</div>
-                </div>
-              </Link>
-            );
-          })}
+      {/* Additional Settings Section */}
+      <div className="space-y-4 border rounded">
+        {/* ADDITIONAL SETTINGS Header Box */}
+        <div className="flex items-center gap-2 p-2 bg-[#FAFAFA] border border-gray-200">
+          <Settings2 className="w-4 h-4 text-gray-600 shrink-0" />
+          <h2 className="text-sm font-semibold text-gray-900">
+            ADDITIONAL SETTINGS
+          </h2>
+        </div>
+
+        {/* ADDITIONAL SETTINGS Nav Items */}
+        <nav className="space-y-3 p-2">
+          {additionalMenuItems.map((item) => (
+            <MenuLink
+              key={item.href}
+              item={item}
+              isLogout={item.label === "Log out"}
+            />
+          ))}
         </nav>
       </div>
     </>
@@ -98,40 +199,68 @@ export default function AccountManagementLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const handleLogout = () => {
+    startTransition(async () => {
+      try {
+        await logoutAction();
+        router.push("/auth/login");
+      } catch (error) {
+        console.error("Logout error:", error);
+      }
+    });
+  };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Mobile Header */}
+    <div className="flex flex-col lg:flex-row min-h-screen px-4 lg:px-16 md:py-8 gap-5">
+      {/* Mobile Header with Sheet Trigger */}
       <div className="lg:hidden sticky top-0 bg-white border-b border-gray-200 z-20">
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center justify-between">
           <h1 className="text-lg font-semibold text-gray-900">Account</h1>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            {sidebarOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <button className="p-2 hover:bg-gray-100 rounded transition">
+                <Menu className="w-6 h-6" />
+              </button>
+            </SheetTrigger>
+            {/* Mobile Sheet - Constrained to Content Height */}
+            <SheetContent
+              side="left"
+              showCloseButton={true}
+              className="w-full sm:max-w-sm p-0 overflow-hidden"
+              // style={{
+              //   height: "calc(100vh - 73px)",
+              //   maxHeight: "calc(100vh - 73px)",
+              //   top: "73px"
+              // }}
+            >
+              <SheetTitle className="sr-only">Account Menu</SheetTitle>
+              <SheetDescription className="sr-only">Menu</SheetDescription>
+              <div className="overflow-y-auto h-full p-4">
+                <SidebarMenuContent
+                  useSheetClose={true}
+                  onLogout={handleLogout}
+                  isLoading={isPending}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex flex-1">
-        {/* Sidebar - Desktop & Mobile */}
-        <AccountSidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)} 
-        />
+      {/* Desktop Sidebar - Static and Always Visible */}
+      <div className="hidden lg:block lg:w-80 lg:min-h-screen">
+        <div className="sticky top-0">
+          <SidebarMenuContent useSheetClose={false} onLogout={handleLogout} isLoading={isPending} />
+        </div>
+      </div>
 
-        {/* Content Area */}
-        <div className="flex-1 min-w-0 bg-gray-50 lg:p-8 p-4">
-          <div className="bg-white rounded-lg lg:rounded-xl shadow-sm lg:shadow-md p-6 lg:p-8">
-            {children}
-          </div>
+      {/* Content Area */}
+      <div className="flex-1 rounded">
+        <div className="bg-white rounded shadow-sm lg:shadow-md">
+          {children}
         </div>
       </div>
     </div>

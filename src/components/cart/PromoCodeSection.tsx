@@ -55,12 +55,12 @@ export function PromoCodeSection({
           onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
           onKeyPress={handleKeyPress}
           disabled={isLoading || !!appliedPromo}
-          className="w-full px-4 py-2 pr-20 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100"
+          className="w-full px-4 py-2 pr-20 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100"
         />
         <button
           onClick={handleApply}
           disabled={!promoCode.trim() || isLoading || !!appliedPromo}
-          className="absolute right-1 top-1/2 -translate-y-1/2 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 text-white font-semibold px-4 py-1 rounded text-sm transition"
+          className="absolute right-1 top-1/2 -translate-y-1/2 bg-primary hover:bg-primary/80 disabled:bg-gray-300 text-white font-semibold px-4 py-1 rounded text-sm transition"
         >
           {isLoading ? "..." : "Apply"}
         </button>

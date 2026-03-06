@@ -57,7 +57,7 @@ export function ProductVariantSection({
       />
 
       {/* Add to Cart Button */}
-      <AddToCartButton productId={productId} variant={selectedVariant} />
+      <AddToCartButton productId={productId} variant={selectedVariant as any} />
     </div>
   );
 }

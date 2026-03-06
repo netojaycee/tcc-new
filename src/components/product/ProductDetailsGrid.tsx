@@ -105,7 +105,7 @@ export function ProductDetailsGrid({
                 />
                 <AddToCartButton
                   productId={productId}
-                  variant={selectedVariant}
+                  variant={selectedVariant as any}
                 />
               </div>
             ) : (

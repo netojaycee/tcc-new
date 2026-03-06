@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import bcrypt from "bcryptjs";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -42,4 +43,12 @@ export function generateOtpCode(): string {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
+}
+
+export async function hashPassword(password: string) {
+  return await bcrypt.hash(password, 10);
+}
+
+export async function verifyPassword(password: string, hash: string) {
+  return await bcrypt.compare(password, hash);
 }

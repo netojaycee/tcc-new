@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { hashPassword, verifyPassword } from "@/lib/auth";
+import { hashPassword, verifyPassword } from "@/lib/utils";
 import { z } from "zod";
 import { generateOtpCode } from "@/lib/utils";
 import { render } from "@react-email/render";
@@ -33,7 +33,7 @@ export interface LoginInput {
 export interface ResetPasswordInput {
   email: string;
   resetToken: string;
-  newPassword: string;
+  password: string;
 }
 
 export interface ChangePasswordInput {
@@ -535,12 +535,12 @@ export const authService = {
         };
       }
 
-      const passwordResult = passwordSchema.safeParse(input.newPassword);
+      const passwordResult = passwordSchema.safeParse(input.password);
       if (!passwordResult.success) {
         return {
           success: false,
           error:
-            (passwordResult.error as any).errors[0]?.message ||
+            (passwordResult.error as any).issues[0]?.message ||
             "Password validation failed",
           code: "VALIDATION_ERROR",
         };

@@ -19,8 +19,9 @@ export interface CheckoutData {
   email?: string;
   firstName?: string;
   lastName?: string;
-  addresses: Address[];
-  defaultAddressId?: string;
+  phone?: string;
+  // addresses: Address[];
+  // defaultAddressId?: string;
   loading: boolean;
   error?: string;
 }
@@ -32,7 +33,7 @@ export interface CheckoutData {
 export function useCheckoutData(): CheckoutData {
   const { session } = useSessionStore();
   const [data, setData] = useState<CheckoutData>({
-    addresses: [],
+    // addresses: [],
     loading: true,
   });
 
@@ -58,8 +59,9 @@ export function useCheckoutData(): CheckoutData {
               email: profile.email,
               firstName: profile.firstName,
               lastName: profile.lastName,
-              addresses,
-              defaultAddressId: defaultAddress?.id,
+              phone: profile.phone,
+              // addresses,
+              // defaultAddressId: defaultAddress?.id,
               loading: false,
             });
           } else {
@@ -73,7 +75,7 @@ export function useCheckoutData(): CheckoutData {
           // Guest user - no addresses to fetch
           setData((prev) => ({
             ...prev,
-            addresses: [],
+            // addresses: [],
             loading: false,
           }));
         }

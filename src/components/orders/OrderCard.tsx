@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
+
+interface OrderItem {
+  id: string;
+  product?: {
+    name: string;
+  };
+}
 
 interface OrderCardProps {
   id: string;
@@ -11,6 +18,7 @@ interface OrderCardProps {
   createdAt: Date;
   total: number;
   itemCount: number;
+  items?: OrderItem[];
   currency?: string;
 }
 
@@ -32,6 +40,7 @@ export function OrderCard({
   createdAt,
   total,
   itemCount,
+  items = [],
   currency = "CAD",
 }: OrderCardProps) {
   const config = statusConfig[status] || statusConfig.pending;
@@ -43,43 +52,59 @@ export function OrderCard({
   const formattedTime = new Date(createdAt).toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12: false,
   });
 
   return (
-    <Link href={`/orders/${orderNumber}`}>
-      <div className="border border-gray-200 rounded-lg p-4 md:p-6 hover:shadow-md transition-shadow">
-        {/* Header - Order Number and Status */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 text-sm md:text-base">
-              Order #{orderNumber}
-            </h3>
-            <p className="text-xs text-gray-500 mt-1">
-              {formattedDate} • {formattedTime}
-            </p>
+    <div className="border border-gray-200 rounded-lg p-4 md:p-6 hover:shadow-md transition-shadow">
+      {/* Top Section - Items Count and Total */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="underline text-sm font-semibold text-gray-900">
+          {itemCount} {itemCount === 1 ? "item" : "items"} ordered
+        </p>
+        <p className="text-lg font-bold text-gray-900">
+          {currency.toUpperCase()} {total.toFixed(2)}
+        </p>
+      </div>
+
+      {/* Order Number - Clickable */}
+      <Link href={`/orders/${orderNumber}`}>
+        <h3 className="font-semibold text-gray-900 text-sm hover:text-primary transition">
+          Order #{orderNumber}
+        </h3>
+      </Link>
+
+      {/* Product Names - Clickable to Order Details */}
+      <div className="my-3 space-y-1">
+        {items.length > 0 ? (
+          items.map((item) => (
+            <Link key={item.id} href={`/orders/${orderNumber}`}>
+              <p className="text-sm text-gray-600 hover:text-primary transition">
+                {item.product?.name || "Product"}
+              </p>
+            </Link>
+          ))
+        ) : (
+          <p className="text-sm text-gray-600">Items</p>
+        )}
+      </div>
+
+      {/* Bottom Section - Status and Date/Time */}
+      <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+        <Badge className={`${config.color} whitespace-nowrap text-xs rounded`}>
+          {config.label}
+        </Badge>
+        <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            <span>{formattedDate}</span>
           </div>
-          <Badge className={`${config.color} whitespace-nowrap ml-2`}>
-            {config.label}
-          </Badge>
-        </div>
-
-        {/* Items Info */}
-        <div className="flex items-center justify-between py-3 border-t border-b border-gray-100">
-          <p className="text-sm text-gray-600">
-            {itemCount} {itemCount === 1 ? "item" : "items"} ordered
-          </p>
-          <p className="text-lg font-bold text-gray-900">
-            {currency.toUpperCase()} {total.toFixed(2)}
-          </p>
-        </div>
-
-        {/* Footer - Navigate Indicator */}
-        <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">View details</span>
-          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            <span>{formattedTime}</span>
+          </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

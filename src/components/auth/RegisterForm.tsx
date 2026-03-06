@@ -223,7 +223,7 @@ export default function RegisterForm() {
         );
         // Redirect to verification page with email
         router.push(
-          `/auth/verify-email?email=${encodeURIComponent(values.email)}`,
+          `/auth/otp-verification?email=${encodeURIComponent(values.email)}`,
         );
       } catch (error) {
         console.error("Register error:", error);

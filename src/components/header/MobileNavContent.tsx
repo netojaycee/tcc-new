@@ -2,14 +2,11 @@
 
 import { useTransition, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { SheetClose } from "@/components/ui/sheet";
-import { Search, Loader2, ShoppingBag, User, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Loader2, ShoppingBag, User, LogOut } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth.actions";
-import { useSearch } from "@/lib/hooks/useSearch";
 import Logo from "../Logo";
+import { Button } from "../ui/button";
 
 interface MobileNavContentProps {
   user: any;
@@ -21,11 +18,7 @@ export default function MobileNavContent({
   categories,
 }: MobileNavContentProps) {
   const [isPending, startTransition] = useTransition();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const { results, isLoading } = useSearch(searchQuery);
   const closeSheetRef = useRef<HTMLButtonElement>(null);
-  const router = useRouter();
 
   const handleLogout = async () => {
     startTransition(async () => {
@@ -39,16 +32,6 @@ export default function MobileNavContent({
     });
   };
 
-  const handleSearchResultClick = (name?: string) => {
-    const searchTerm = name || searchQuery;
-    console.log("✓ Search result clicked:", searchTerm);
-    console.log("✓ Navigating to /products?search=" + searchTerm);
-    router.push(`/products?search=${encodeURIComponent(searchTerm)}`);
-    setSearchQuery("");
-    setShowSearchResults(false);
-    closeSheetRef.current?.click();
-  };
-
   const accountLinks = [
     { label: "Orders", href: "/orders" },
     { label: "Recently Viewed", href: "/recently-viewed" },
@@ -58,75 +41,9 @@ export default function MobileNavContent({
   return (
     <div className="flex flex-col h-full">
       <Logo />
-      {/* Search Bar */}
-      <div className="mb-6 mt-3">
-        <div className="relative">
-          <Input
-            placeholder="Search for anything..."
-            className="pl-10 pr-3 py-2 text-sm"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setShowSearchResults(true);
-            }}
-            onFocus={() => searchQuery && setShowSearchResults(true)}
-          />
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-          {/* Search Results Dropdown */}
-          {showSearchResults && searchQuery && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
-              {isLoading && (
-                <div className="flex items-center justify-center gap-2 p-4 text-gray-500">
-                  <Loader2 size={16} className="animate-spin" />
-                  <span className="text-sm">Searching...</span>
-                </div>
-              )}
-
-              {!isLoading && (!results?.length) && (
-                <div className="p-4 text-center text-gray-500 text-xs">
-                  No results found
-                </div>
-              )}
-
-              {/* Products */}
-              {!isLoading && results && results.length > 0 && (
-                <div className="border-b border-gray-200">
-                  <div className="px-3 py-2 bg-gray-50">
-                    <p className="text-xs font-semibold text-gray-600 uppercase">
-                      Products
-                    </p>
-                  </div>
-                  {results.map((prod: any) => (
-                    <button
-                      key={prod.id}
-                      onClick={() => handleSearchResultClick(prod.name)}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-800"
-                    >
-                      {prod.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* View All Results */}
-              {!isLoading && results && results.length > 0 && (
-                <div className="border-t border-gray-200 p-3 bg-gray-50">
-                  <button
-                    onClick={() => handleSearchResultClick()}
-                    className="w-full text-sm text-primary font-medium hover:underline py-1"
-                  >
-                    View all results for &quot;{searchQuery}&quot;
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto mt-6">
         {/* My Account Section */}
         {user && (
           <div className="mb-8 border border-gray-300 rounded">
@@ -164,10 +81,10 @@ export default function MobileNavContent({
             <li>
               <SheetClose asChild>
                 <Link
-                  href="/category/giftbox"
+                  href="/products"
                   className="block text-sm font-normal text-gray-800 hover:text-primary transition-colors px-3 py-3 underline"
                 >
-                  Gift Packages
+                  All Products
                 </Link>
               </SheetClose>
             </li>
@@ -218,7 +135,7 @@ export default function MobileNavContent({
           <>
             <SheetClose asChild>
               <Button asChild className="w-full bg-primary hover:bg-primary/90">
-                <Link href="/auth/login">Get Started</Link>
+                <Link href="/auth/register">Get Started</Link>
               </Button>
             </SheetClose>
           </>

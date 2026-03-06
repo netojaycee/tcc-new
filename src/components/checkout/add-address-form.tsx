@@ -202,7 +202,7 @@ export function AddAddressForm({
             <Button
               type="submit"
               disabled={isPending}
-              className="flex-1 bg-teal-600 hover:bg-teal-700 text-white"
+              className="flex-1 bg-primary hover:bg-primary/80 text-white"
             >
               {isPending ? (
                 <>

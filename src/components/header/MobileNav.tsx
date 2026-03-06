@@ -12,7 +12,7 @@ import { navLinks } from "./navLinks";
 
 export default async function MobileNav() {
   const user = await getCurrentUser();
-  const result = await getCategoriesAction();
+  const result = await getCategoriesAction({ limit: 8, offset: 0 });
   const categories = result.success ? result.data : navLinks;
   // console.log(categories)
 

@@ -1,4 +1,3 @@
-import { Separator } from "@/components/ui/separator";
 import LogoSection from "./LogoSection";
 import SearchBar from "./SearchBar";
 import UserActions from "./UserActions";
@@ -6,7 +5,7 @@ import Cart from "./Cart";
 import DesktopNav from "./DesktopNav";
 import MobileNav from "./MobileNav";
 import CustomBreadcrumb from "./CustomBreadcrumb";
-import { Heart, Gift } from "lucide-react";
+import { CurrencySelector } from "./CurrencySelector";
 
 export default function Header() {
   return (
@@ -37,6 +36,9 @@ export default function Header() {
             {/* <button className="transition-all hover:text-primary duration-300 hover:scale-110 shrink-0">
               <Gift className="w-6 h-6" />
             </button> */}
+
+            {/* Currency Selector */}
+            <CurrencySelector />
 
             {/* Cart Icon */}
             <Cart />

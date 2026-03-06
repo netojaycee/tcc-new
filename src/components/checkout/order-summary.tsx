@@ -279,7 +279,7 @@ export function OrderSummary({
           disabled={isLoading}
           className={`w-full py-3 rounded font-semibold text-white transition ${
             !isLoading
-              ? "bg-teal-600 hover:bg-teal-700 cursor-pointer"
+              ? "bg-primary hover:bg-primary/80 cursor-pointer"
               : "bg-gray-300 cursor-not-allowed"
           }`}
         >
@@ -291,7 +291,7 @@ export function OrderSummary({
       {!showDetailedBreakdown && (
         <Link
           href="/"
-          className="block text-center text-sm text-teal-600 hover:text-teal-700 font-semibold mt-3 underline"
+          className="block text-center text-sm text-primary hover:text-primary/80 font-semibold mt-3 underline"
         >
           Continue Shopping
         </Link>

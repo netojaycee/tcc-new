@@ -17,13 +17,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, EyeOff, Eye, Lock, ArrowRight } from "lucide-react";
 import Logo from "../Logo";
-import { ChangePasswordCredentials, changePasswordSchema } from "@/lib/schema";
+import { ChangePasswordCredentials, changePasswordSchema, resetPasswordSchema } from "@/lib/schema";
 import { changePasswordAction, resetPasswordAction } from "@/lib/actions/auth.actions";
 import { z } from "zod";
 import { PasswordStrength } from "./PasswordStrength";
 
 // Schema for password reset (only new password)
-const resetPasswordSchema = changePasswordSchema;
 
 // Schema for change password in profile (current + new password)
 const profileChangePasswordSchema = z.object({
@@ -91,7 +90,7 @@ export default function ChangePassword({
           // console.log(email, resetValues.password, resetToken)
           const result = await resetPasswordAction({
             email: email || "",
-            newPassword: resetValues.password,
+            password: resetValues.password,
             resetToken: resetToken,
           });
 
@@ -164,7 +163,7 @@ export default function ChangePassword({
                         placeholder='Enter current password'
                         {...field}
                         disabled={isPending}
-                        className='pl-10 border-gray-300 focus:border-teal-500 focus:ring-teal-500'
+                        className='pl-10 border-gray-300 focus:border-primary focus:ring-primary'
                       />
                     </FormControl>
                     <Lock className='w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700' />
@@ -203,7 +202,7 @@ export default function ChangePassword({
                       placeholder='********'
                       {...field}
                       disabled={isPending}
-                      className='pl-10 border-gray-300 focus:border-teal-500 focus:ring-teal-500'
+                      className='pl-10 border-gray-300 focus:border-primary focus:ring-primary'
                     />
                   </FormControl>
                   <Lock className='w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700' />
@@ -242,7 +241,7 @@ export default function ChangePassword({
                       placeholder='********'
                       {...field}
                       disabled={isPending}
-                      className='pl-10 border-gray-300 focus:border-teal-500 focus:ring-teal-500'
+                      className='pl-10 border-gray-300 focus:border-primary focus:ring-primary'
                     />
                   </FormControl>
                   <Lock className='w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700' />
@@ -268,7 +267,7 @@ export default function ChangePassword({
           <Button
             type='submit'
             disabled={isPending}
-            className='w-full flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white'
+            className='w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/80 text-white'
           >
             {isPending ? (
               <>

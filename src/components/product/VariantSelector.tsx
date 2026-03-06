@@ -11,20 +11,42 @@ import {
 } from "@/components/ui/dialog";
 import { COLOR_HEX_MAP } from "@/lib/utils/color";
 
-// Helper function to get hex color
-// Prioritizes color_code (Printful hex) over name-based lookup
+// Helper function to get hex color - prioritizes color_code over name-based lookup
 function getColorHex(color: string, colorCode?: string): string {
   // Use color_code directly if available
   if (colorCode && colorCode.trim() !== "") {
     return colorCode;
   }
+
   // Fall back to looking up color name in COLOR_HEX_MAP
   return (
     COLOR_HEX_MAP.find(
       (c: { name: string; hex: string }) =>
-        c.name.toLowerCase() === color.toLowerCase()
+        c.name.toLowerCase() === color?.toLowerCase()
     )?.hex || "#CCCCCC"
   );
+}
+
+// Helper function to get background style for color box with split color support
+function getColorBoxStyle(
+  color: string,
+  colorCode?: string,
+  colorCode2?: string,
+): React.CSSProperties {
+  const color1 = getColorHex(color, colorCode);
+
+  // If color_code2 exists, create a split (top/bottom) gradient
+  if (colorCode2 && colorCode2.trim() !== "") {
+    const color2 = colorCode2;
+    return {
+      background: `linear-gradient(to bottom, ${color1} 50%, ${color2} 50%)`,
+    };
+  }
+
+  // Otherwise, solid color
+  return {
+    backgroundColor: color1,
+  };
 }
 
 // Optimization 1: Image preloader utility
@@ -64,9 +86,10 @@ export interface Variant {
   id: number;
   sku?: string;
   name: string;
-  size: string;
-  color: string;
-  color_code?: string; // Hex color code from Printful (e.g., "#14191e")
+  size: string | null;
+  color: string | null;
+  color_code?: string | null; // Hex color code from Printful (e.g., "#14191e")
+  color_code2?: string | null; // Second color code for split color display
   variant_id?: number;
   image?: string;
   files?: Array<{
@@ -90,7 +113,11 @@ export function VariantSelector({
 }: VariantSelectorProps) {
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   // console.log("Received variants:", variants);
-
+  // console.log("Variants with color:", variants.filter((v) => v.color));
+  // console.log(
+  //   "Variants without color:",
+  //   variants.filter((v) => !v.color),
+  // );
   // Optimization 1: Preload all variant images on mount
   useEffect(() => {
     variants.forEach((variant) => {
@@ -102,28 +129,44 @@ export function VariantSelector({
     });
   }, [variants]);
 
-  // Group variants by color
+  // Separate variants with colors from those without
+  const variantsWithColor = useMemo(
+    () => variants.filter((v) => v.color),
+    [variants],
+  );
+
+  const variantsWithoutColor = useMemo(
+    () => variants.filter((v) => !v.color),
+    [variants],
+  );
+
+  const hasColors = variantsWithColor.length > 0;
+  const hasOnlySize = variantsWithoutColor.length > 0 && !hasColors;
+
+  // Group variants by color (only for variants with colors)
   const colorOptions = useMemo(() => {
     const colors = new Map<string, Variant[]>();
-    variants.forEach((variant) => {
-      if (!colors.has(variant.color)) {
-        colors.set(variant.color, []);
+    variantsWithColor.forEach((variant) => {
+      if (variant.color) {
+        if (!colors.has(variant.color)) {
+          colors.set(variant.color, []);
+        }
+        colors.get(variant.color)!.push(variant);
       }
-      colors.get(variant.color)!.push(variant);
     });
     return colors;
-  }, [variants]);
+  }, [variantsWithColor]);
 
   // Get unique colors
   const uniqueColors = useMemo(
-    () => Array.from(colorOptions.keys()),
+    () => Array.from(colorOptions.keys()).filter((color) => color !== null),
     [colorOptions],
   );
 
   // Initialize with first color and first size of that color
   const initialColor = uniqueColors[0] || null;
   const initialSizeOptions = initialColor
-    ? colorOptions.get(initialColor)?.map((v) => v.size) || []
+    ? colorOptions.get(initialColor)?.map((v) => v.size).filter((s) => s) || []
     : [];
   const initialSize = initialSizeOptions[0] || null;
 
@@ -134,28 +177,56 @@ export function VariantSelector({
 
   // Optimization 2: Memoize size calculation with useCallback
   const getSizesForColor = useCallback(
-    (colorName: string) => {
-      if (!colorName) return [];
-      const colorVariants = colorOptions.get(colorName) || [];
-      const sizes = new Set<string>();
-      colorVariants.forEach((v) => sizes.add(v.size));
-      return Array.from(sizes);
+    (colorName: string | null) => {
+      // If no color selected and we have variants without color, get sizes from those
+      if (!colorName && variantsWithoutColor.length > 0) {
+        const sizes = new Set<string>();
+        variantsWithoutColor.forEach((v) => {
+          if (v.size) sizes.add(v.size);
+        });
+        return Array.from(sizes);
+      }
+
+      // If color is selected, get sizes for that color
+      if (colorName) {
+        const colorVariants = colorOptions.get(colorName) || [];
+        const sizes = new Set<string>();
+        colorVariants.forEach((v) => {
+          if (v.size) sizes.add(v.size);
+        });
+        return Array.from(sizes);
+      }
+
+      return [];
     },
-    [colorOptions],
+    [colorOptions, variantsWithoutColor],
   );
 
   // Get sizes for selected color
   const sizeOptions = useMemo(
-    () => getSizesForColor(selectedColor || ""),
+    () => getSizesForColor(selectedColor),
     [selectedColor, getSizesForColor],
   );
 
   // Get selected variant
   const selectedVariant = useMemo(() => {
-    if (!selectedColor || !selectedSize) return null;
-    const colorVariants = colorOptions.get(selectedColor) || [];
-    return colorVariants.find((v) => v.size === selectedSize) || null;
-  }, [selectedColor, selectedSize, colorOptions]);
+    if (!selectedSize) return null;
+
+    // If no color selected, find in variantsWithoutColor
+    if (!selectedColor && variantsWithoutColor.length > 0) {
+      return (
+        variantsWithoutColor.find((v) => v.size === selectedSize) || null
+      );
+    }
+
+    // If color selected, find in colorOptions
+    if (selectedColor) {
+      const colorVariants = colorOptions.get(selectedColor) || [];
+      return colorVariants.find((v) => v.size === selectedSize) || null;
+    }
+
+    return null;
+  }, [selectedColor, selectedSize, colorOptions, variantsWithoutColor]);
 
   // Optimization 4: Lazy load images for selected color variants only
   // Debounce to avoid excessive preloading during rapid color changes
@@ -172,8 +243,17 @@ export function VariantSelector({
           });
         }
       });
+    } else if (hasOnlySize && variantsWithoutColor.length > 0) {
+      // If only sizes (no color), preload images for those variants
+      variantsWithoutColor.forEach((variant) => {
+        if (variant.image) {
+          preloadImage(variant.image).catch(() => {
+            // Silently handle preload failures
+          });
+        }
+      });
     }
-  }, [debouncedSelectedColor, colorOptions]);
+  }, [debouncedSelectedColor, colorOptions, variantsWithoutColor, hasOnlySize]);
 
   // Optimization 3: Debounce variant selection to smooth image transitions
   const debouncedSelectedVariant = useDebounce(selectedVariant, 100);
@@ -188,6 +268,13 @@ export function VariantSelector({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sizeOptions]);
 
+  // Initialize size selection for size-only variants
+  useEffect(() => {
+    if (hasOnlySize && selectedSize === null && sizeOptions.length > 0) {
+      setSelectedSize(sizeOptions[0]);
+    }
+  }, [hasOnlySize, selectedSize, sizeOptions]);
+
   // Notify parent when variant is selected (with debounced variant to smooth transitions)
   useEffect(() => {
     if (debouncedSelectedVariant) {
@@ -197,58 +284,65 @@ export function VariantSelector({
 
   return (
     <div className="space-y-4 border-b pb-4">
-      {/* Color Selection */}
-      <div>
-        <label className="text-sm font-semibold text-gray-900 block mb-3">
-          Color |{" "}
-          {selectedColor && (
-            <span className="font-semibold text-gray-500">
-              {selectedColor.toLocaleLowerCase()}
-            </span>
-          )}
-        </label>
-        <div className="flex flex-wrap gap-3">
-          {uniqueColors.map((color) => {
-            // Get hex color code from variant's color_code if available, otherwise map from color name
-            const firstVariantWithColor = colorOptions.get(color)?.[0];
-            const hexColor = getColorHex(color, firstVariantWithColor?.color_code);
-            const isSelected = selectedColor === color;
+      {/* Color Selection - Only show if variants have colors */}
+      {hasColors && (
+        <div>
+          <label className="text-sm font-semibold text-gray-900 block mb-3">
+            Color |{" "}
+            {selectedColor && (
+              <span className="font-semibold text-gray-500">
+                {selectedColor.toLocaleLowerCase()}
+              </span>
+            )}
+          </label>
+          <div className="flex flex-wrap gap-3">
+            {uniqueColors.map((color) => {
+              // Get hex color code from variant's color_code if available, otherwise map from color name
+              const firstVariantWithColor = colorOptions.get(color)?.[0];
+              const hexColor = getColorHex(color, firstVariantWithColor?.color_code ?? undefined);
+              const isSelected = selectedColor === color;
+              const colorBoxStyle = getColorBoxStyle(
+                color,
+                firstVariantWithColor?.color_code ?? undefined,
+                firstVariantWithColor?.color_code2 ?? undefined,
+              );
 
-            return (
-              <button
-                key={color}
-                onClick={() => {
-                  if (color !== selectedColor) {
-                    setSelectedColor(color);
-                  }
-                }}
-                className={`relative group transition-transform ${
-                  isSelected ? "scale-110" : "hover:scale-105"
-                }`}
-                // title={color}
-              >
-                {/* Color box */}
-                <div
-                  className={`w-10 h-10 rounded border transition-all ${
-                    isSelected
-                      ? "border-black shadow-lg"
-                      : "border-gray-300 hover:border-gray-400"
-                  } ${hexColor === "#FFFFFF" ? "border-gray-400" : ""}`}
-                  style={{ backgroundColor: hexColor }}
-                />
+              return (
+                <button
+                  key={color}
+                  onClick={() => {
+                    if (color !== selectedColor) {
+                      setSelectedColor(color);
+                    }
+                  }}
+                  className={`relative group transition-transform ${
+                    isSelected ? "scale-110" : "hover:scale-105"
+                  }`}
+                  // title={color}
+                >
+                  {/* Color box */}
+                  <div
+                    className={`w-10 h-10 rounded border transition-all ${
+                      isSelected
+                        ? "border-black shadow-lg"
+                        : "border-gray-300 hover:border-gray-400"
+                    } ${hexColor === "#FFFFFF" ? "border-gray-400" : ""}`}
+                    style={colorBoxStyle}
+                  />
 
-                {/* Tooltip */}
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                  {color}
-                </span>
-              </button>
-            );
-          })}
+                  {/* Tooltip */}
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    {color}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Size Selection */}
-      {selectedColor && (
+      {/* Size Selection - Show if sizes are available (with or without colors) */}
+      {sizeOptions.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-semibold text-gray-900">Size</label>

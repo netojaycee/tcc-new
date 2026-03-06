@@ -88,7 +88,7 @@ export function CheckoutForm({
       <Button
         type="submit"
         disabled={!stripe || !elements || isProcessing}
-        className="w-full bg-teal-600 hover:bg-teal-700 text-white text-base h-12 rounded-lg font-semibold flex items-center justify-center gap-2"
+        className="w-full bg-primary hover:bg-primary/80 text-white text-base h-12 rounded-lg font-semibold flex items-center justify-center gap-2"
       >
         {isProcessing ? (
           <>

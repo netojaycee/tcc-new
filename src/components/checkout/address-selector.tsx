@@ -46,7 +46,7 @@ export function AddressSelector({
             key={address.id}
             className={`p-4 cursor-pointer transition-colors ${
               useExistingAddress && selectedAddressId === address.id
-                ? "border-teal-500 bg-teal-50"
+                ? "border-primary bg-primary/10"
                 : "border-gray-200 hover:border-gray-300"
             }`}
             onClick={() => handleSelectAddress(address.id)}
@@ -69,7 +69,7 @@ export function AddressSelector({
                 </p>
                 <p className="text-sm text-gray-600">{address.country}</p>
                 {address.isDefault && (
-                  <span className="inline-block mt-2 px-2 py-0.5 bg-teal-100 text-teal-700 text-xs font-medium rounded-full">
+                  <span className="inline-block mt-2 px-2 py-0.5 bg-primary text-primary text-xs font-medium rounded-full">
                     Default
                   </span>
                 )}
