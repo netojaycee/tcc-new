@@ -2,14 +2,17 @@
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { COLOR_HEX_MAP } from "@/lib/utils/color";
+import {
+  SizeGuideModal,
+  type SizeGuideData,
+  type SizeTable,
+  type SizeTableMeasurement,
+} from "./SizeGuideModal";
+
+// Re-export types for convenience
+export type { SizeGuideData, SizeTable, SizeTableMeasurement };
+
 
 // Helper function to get hex color - prioritizes color_code over name-based lookup
 function getColorHex(color: string, colorCode?: string): string {
@@ -52,7 +55,7 @@ function getColorBoxStyle(
 // Optimization 1: Image preloader utility
 function preloadImage(src: string): Promise<void> {
   return new Promise((resolve) => {
-    const img = new Image();
+    const img = new (globalThis.Image as any)();
     img.onload = () => resolve();
     img.onerror = () => resolve(); // Resolve even on error to avoid blocking
     img.src = src;
@@ -105,13 +108,18 @@ export interface Variant {
 interface VariantSelectorProps {
   variants: Variant[];
   onVariantSelect: (variant: Variant) => void;
+  productType?: "store" | "catalog"; // Added to control size guide visibility
+  sizeGuideData?: SizeGuideData | null; // Added to pass dynamic size guide data
 }
 
 export function VariantSelector({
   variants,
   onVariantSelect,
+  productType = "store",
+  sizeGuideData,
 }: VariantSelectorProps) {
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  const isCatalogProduct = productType === "catalog";
   // console.log("Received variants:", variants);
   // console.log("Variants with color:", variants.filter((v) => v.color));
   // console.log(
@@ -346,13 +354,15 @@ export function VariantSelector({
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-semibold text-gray-900">Size</label>
-            <Button
-              variant="link"
-              className="text-xs text-red-500 underline underline-offset-2 cursor-pointer p-0 h-auto"
-              onClick={() => setSizeGuideOpen(true)}
-            >
-              Size Guide
-            </Button>
+            {isCatalogProduct && sizeGuideData && (
+              <Button
+                variant="link"
+                className="text-xs text-red-500 underline underline-offset-2 cursor-pointer p-0 h-auto"
+                onClick={() => setSizeGuideOpen(true)}
+              >
+                Size Guide
+              </Button>
+            )}
           </div>
           <div className="flex flex-wrap gap-3">
             {sizeOptions.map((size) => (
@@ -374,109 +384,11 @@ export function VariantSelector({
       )}
 
       {/* Size Guide Modal */}
-      <Dialog open={sizeGuideOpen} onOpenChange={setSizeGuideOpen}>
-        <DialogContent className="max-w-2xl h-[70vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Size Guide</DialogTitle>
-            <DialogDescription>
-              Find your perfect fit using our size guide
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="mt-3 space-y-6">
-            {/* Size Chart Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">
-                      Size
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">
-                      UK Size
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">
-                      Chest (cm)
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">
-                      Length (cm)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { size: "XS", uk: "6-8", chest: "76-81", length: "61" },
-                    { size: "S", uk: "8-10", chest: "81-86", length: "63" },
-                    { size: "M", uk: "10-12", chest: "86-91", length: "65" },
-                    { size: "L", uk: "12-14", chest: "91-97", length: "68" },
-                    { size: "XL", uk: "14-16", chest: "97-102", length: "71" },
-                    {
-                      size: "2XL",
-                      uk: "16-18",
-                      chest: "102-107",
-                      length: "73",
-                    },
-                    {
-                      size: "3XL",
-                      uk: "18-20",
-                      chest: "107-112",
-                      length: "75",
-                    },
-                    { size: "4XL", uk: "20+", chest: "112+", length: "77" },
-                  ].map((row) => (
-                    <tr
-                      key={row.size}
-                      className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="py-3 px-4 font-medium text-gray-900">
-                        {row.size}
-                      </td>
-                      <td className="py-3 px-4 text-gray-700">{row.uk}</td>
-                      <td className="py-3 px-4 text-gray-700">{row.chest}</td>
-                      <td className="py-3 px-4 text-gray-700">{row.length}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Fit Tips */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">
-                How to Measure
-              </h3>
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>
-                  <strong>Chest:</strong> Measure around the fullest part of
-                  your chest with arms relaxed
-                </li>
-                <li>
-                  <strong>Length:</strong> Measure from the top of your shoulder
-                  to the desired hem point
-                </li>
-              </ul>
-            </div>
-
-            {/* Fit Guide */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">Fit Types</h3>
-              <div className="space-y-2 text-sm text-gray-700">
-                <p>
-                  <strong>Regular Fit:</strong> True to size, comfortable
-                  everyday wear
-                </p>
-                <p>
-                  <strong>Slim Fit:</strong> Fitted silhouette, recommended to
-                  size up if between sizes
-                </p>
-                <p>
-                  <strong>Loose Fit:</strong> Relaxed fit, runs slightly larger
-                </p>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SizeGuideModal
+        open={sizeGuideOpen}
+        onOpenChange={setSizeGuideOpen}
+        sizeGuideData={sizeGuideData}
+      />
     </div>
   );
 }

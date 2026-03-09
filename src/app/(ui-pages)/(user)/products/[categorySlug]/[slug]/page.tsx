@@ -68,6 +68,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           variants={product.variants as any}
           defaultGalleryImages={product.gallery || []}
           productType={productType}
+          sizeGuideData={product.sizeGuideData as any}
           detailsContent={
             <>
               {/* Product Pricing Details with Currency Conversion */}

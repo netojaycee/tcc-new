@@ -85,11 +85,17 @@ model Product {
   gallery   String[]
 
   // Product variants (sizes, colors, materials)
-  variants Json // [{id, label, color, size, price, cost}]
+  variants Json // [{id, label, color, size, price, cost, in_stock, availability_status}]
 
   // Print/Customization areas
   printAreas         Json? // [{name, type, position}]
   allowCustomization Boolean @default(true) // Can users customize?
+
+  // Stock & Availability
+  activeVariantCount Int     @default(0)    // Count of in-stock variants
+  availabilityData   Json?                  // {regions: [...], lastUpdate: DateTime}
+  sizeGuideData      Json?                  // Cached size guide from Printful (catalog only)
+  lastStockSync      DateTime?
 
   // Status & sync
   active   Boolean   @default(true)

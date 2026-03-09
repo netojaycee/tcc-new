@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { VariantSelector, type Variant } from "./VariantSelector";
+import { type SizeGuideData } from "./SizeGuideModal";
 import { ProductGallery } from "./ProductGallery";
 import { AddToCartButton } from "./AddToCartButton";
 import { getVariantImage } from "@/lib/utils/variant";
@@ -15,6 +16,7 @@ interface ProductDetailsGridProps {
   variants: Variant[] | null;
   detailsContent: React.ReactNode; // The product details section (price, rating, etc.)
   productType?: string; // "store" or "catalog"
+  sizeGuideData?: SizeGuideData | null; // Size guide data for catalog products
 }
 
 export function ProductDetailsGrid({
@@ -23,6 +25,7 @@ export function ProductDetailsGrid({
   variants,
   detailsContent,
   productType = "store",
+  sizeGuideData,
 }: ProductDetailsGridProps) {
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
@@ -61,6 +64,8 @@ export function ProductDetailsGrid({
               <VariantSelector
                 variants={variants}
                 onVariantSelect={handleVariantSelect}
+                productType="catalog"
+                sizeGuideData={sizeGuideData}
               />
             )}
 
@@ -102,6 +107,8 @@ export function ProductDetailsGrid({
                 <VariantSelector
                   variants={variants}
                   onVariantSelect={handleVariantSelect}
+                  productType="store"
+                  sizeGuideData={sizeGuideData}
                 />
                 <AddToCartButton
                   productId={productId}

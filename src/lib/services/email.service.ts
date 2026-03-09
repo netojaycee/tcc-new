@@ -270,3 +270,61 @@ export async function sendOrderDeliveredEmail({
     }),
   });
 }
+
+export async function sendOrderFailedEmail({
+  firstName,
+  orderNumber,
+  orderId,
+  customerEmail,
+  reason,
+}: {
+  firstName: string;
+  orderNumber: string;
+  orderId: string;
+  customerEmail: string;
+  reason?: string;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const { default: OrderFailedEmail } = await import(
+    "@/emails/orders/OrderFailedEmail"
+  );
+
+  return sendEmail({
+    to: customerEmail,
+    subject: `Order Issue - #${orderNumber} Could Not Be Fulfilled`,
+    component: React.createElement(OrderFailedEmail, {
+      firstName,
+      orderNumber,
+      orderId,
+      reason,
+    }),
+  });
+}
+
+export async function sendOrderCanceledEmail({
+  firstName,
+  orderNumber,
+  orderId,
+  customerEmail,
+  reason,
+}: {
+  firstName: string;
+  orderNumber: string;
+  orderId: string;
+  customerEmail: string;
+  reason?: string;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const { default: OrderCanceledEmail } = await import(
+    "@/emails/orders/OrderCanceledEmail"
+  );
+
+  return sendEmail({
+    to: customerEmail,
+    subject: `Order Canceled - #${orderNumber}`,
+    component: React.createElement(OrderCanceledEmail, {
+      firstName,
+      orderNumber,
+      orderId,
+      reason,
+    }),
+  });
+}

@@ -22,6 +22,10 @@ export interface PrintfulVariant {
   sku: string | null;
   retail_price: string | number;
   cost: string | number;
+  // Stock & availability (added for filtering)
+  in_stock?: boolean;
+  availability_regions?: Record<string, string>;
+  availability_status?: Array<{ region: string; status: string }>;
 }
 
 export interface PrintfulProductDetail {
@@ -98,6 +102,31 @@ export interface PrintfulCarrier {
   max_delivery_days: number;
 }
 
+export interface SizeTableMeasurement {
+  type_label: string;
+  values: Array<{
+    size: string;
+    value?: string;
+    min_value?: string;
+    max_value?: string;
+  }>;
+}
+
+export interface SizeTable {
+  type: "measure_yourself" | "product_measure" | "international";
+  unit: "inches" | "cm" | "none";
+  description?: string;
+  image_url?: string;
+  image_description?: string;
+  measurements: SizeTableMeasurement[];
+}
+
+export interface SizeGuideData {
+  product_id: number;
+  available_sizes: string[];
+  size_tables: SizeTable[];
+}
+
 export interface PrintfulOrderItem {
   variant_id: string | number;
   quantity: number;
@@ -156,6 +185,76 @@ export interface PrintfulApiResponse<T> {
   result: T;
 }
 
+// Webhook types
+export interface WebhookParams {
+  stock_updated?: {
+    product_ids: number[];
+  };
+}
+
+export interface WebhookInfo {
+  url: string;
+  types: string[];
+  params?: WebhookParams;
+}
+
+export interface PrintfulWebhookResponse {
+  url: string;
+  types: string[];
+  params?: WebhookParams;
+}
+
+// Event payload types for documentation
+export interface PackageShippedData {
+  shipment: {
+    id: number;
+    address_to: PrintfulAddress;
+    carrier: string;
+    service: string;
+    tracking_number: string;
+    tracking_url: string;
+    estimated_delivery_date: string;
+    items: Array<{
+      item_id: number;
+      quantity: number;
+    }>;
+  };
+  order: {
+    id: number;
+    external_id: string | null;
+    status: string;
+  };
+}
+
+export interface StockUpdatedData {
+  product_id: number;
+  variant_stock: {
+    out: number[];
+    discontinued: number[];
+  };
+}
+
+export interface OrderEventData {
+  order: {
+    id: number;
+    external_id: string | null;
+    status: string;
+    created: number;
+    updated: number;
+    recipient: PrintfulAddress;
+    items: PrintfulOrderItem[];
+    shipping: string;
+    costs?: {
+      currency: string;
+      subtotal: number;
+      shipping: number;
+      tax: number;
+      total: number;
+    };
+  };
+  reason?: string;
+}
+
 class PrintfulService {
   private client: AxiosInstance;
   private baseURL: string;
@@ -163,7 +262,8 @@ class PrintfulService {
 
   constructor() {
     const apiKey = process.env.PRINTFUL_API_KEY;
-    const baseURL = process.env.PRINTFUL_API_BASE_URL || "https://api.printful.com";
+    const baseURL =
+      process.env.PRINTFUL_API_BASE_URL || "https://api.printful.com";
 
     if (!apiKey) {
       throw new Error("Missing PRINTFUL_API_KEY environment variable");
@@ -193,7 +293,7 @@ class PrintfulService {
         await this.client.get<PrintfulApiResponse<PrintfulProduct[]>>(
           "/store/products",
         );
-        // console.log("Printful API - getAllStoreProducts response:", data);
+      // console.log("Printful API - getAllStoreProducts response:", data);
       return data.result;
     } catch (error) {
       throw this.handleError(
@@ -260,6 +360,109 @@ class PrintfulService {
   }
 
   /**
+   * Fetch size guide for a catalog product
+   */
+  async getSizeGuide(
+    productId: string | number,
+  ): Promise<SizeGuideData | null> {
+    try {
+      const { data } = await this.client.get<
+        PrintfulApiResponse<SizeGuideData>
+      >(`/products/${productId}/sizes`);
+      return data.result;
+    } catch (error) {
+      // Size guide not found is not a critical error, just warn
+      console.warn(
+        `[Printful] Size guide not found for product ${productId}`,
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Get current webhook configuration
+   */
+  async getWebhook(): Promise<PrintfulWebhookResponse | null> {
+    try {
+      const { data } =
+        await this.client.get<PrintfulApiResponse<PrintfulWebhookResponse>>(
+          "/webhooks",
+        );
+      return data.result;
+    } catch (error) {
+      // No webhook configured yet is not an error
+      const err = error as any;
+      if (err.response?.status === 404) {
+        return null;
+      }
+      throw this.handleError(
+        error,
+        "Failed to fetch webhook configuration from Printful",
+      );
+    }
+  }
+
+  /**
+   * Create or update webhook configuration
+   * Note: Only 1 webhook per store - new POST replaces the old one
+   */
+  async createWebhook(
+    url: string,
+    types: string[],
+    params?: WebhookParams,
+  ): Promise<PrintfulWebhookResponse> {
+    try {
+      const payload: WebhookInfo = {
+        url,
+        types,
+        params,
+      };
+
+      const { data } = await this.client.post<
+        PrintfulApiResponse<PrintfulWebhookResponse>
+      >("/webhooks", payload);
+
+      console.log("[Printful] Webhook created:", data.result.url);
+      return data.result;
+    } catch (error) {
+      throw this.handleError(
+        error,
+        "Failed to create/update webhook in Printful",
+      );
+    }
+  }
+
+  /**
+   * Delete webhook configuration
+   */
+  async deleteWebhook(): Promise<void> {
+    try {
+      await this.client.delete("/webhooks");
+      console.log("[Printful] Webhook deleted");
+    } catch (error) {
+      throw this.handleError(error, "Failed to delete webhook from Printful");
+    }
+  }
+
+  /**
+   * Get all products to monitor for stock updates
+   * This returns product IDs that should be sent in the stock_updated webhook params
+   */
+  async getProductIdsForStockMonitoring(): Promise<number[]> {
+    try {
+      // Get all store products (these are user's synced products)
+      const storeProducts = await this.getAllStoreProducts();
+      return storeProducts.map((p) => p.id);
+    } catch (error) {
+      throw this.handleError(
+        error,
+        "Failed to get product IDs for stock monitoring",
+      );
+    }
+  }
+
+  /**
    * Fetch all categories from Printful
    */
   async getAllCategories(): Promise<PrintfulCategory[]> {
@@ -270,10 +473,7 @@ class PrintfulService {
         );
       return data.result;
     } catch (error) {
-      throw this.handleError(
-        error,
-        "Failed to fetch categories from Printful",
-      );
+      throw this.handleError(error, "Failed to fetch categories from Printful");
     }
   }
 
@@ -301,9 +501,10 @@ class PrintfulService {
    */
   async getCarriers(): Promise<PrintfulCarrier[]> {
     try {
-      const { data } = await this.client.get<
-        PrintfulApiResponse<PrintfulCarrier[]>
-      >("/shipping/carriers");
+      const { data } =
+        await this.client.get<PrintfulApiResponse<PrintfulCarrier[]>>(
+          "/shipping/carriers",
+        );
       return data.result;
     } catch (error) {
       throw this.handleError(error, "Failed to fetch carriers from Printful");
@@ -343,10 +544,7 @@ class PrintfulService {
       >("/orders", orderData);
       return data.result;
     } catch (error) {
-      throw this.handleError(
-        error,
-        "Failed to create order in Printful",
-      );
+      throw this.handleError(error, "Failed to create order in Printful");
     }
   }
 
@@ -374,29 +572,41 @@ class PrintfulService {
   async estimateOrderCosts(
     items: Array<{ variant_id: string | number; quantity: number }>,
     recipient: PrintfulAddress,
-  ): Promise<{ shipping: number; tax: number; subtotal?: number; total?: number; discount?: number; shipping_time?: string }> {
+  ): Promise<{
+    shipping: number;
+    tax: number;
+    subtotal?: number;
+    total?: number;
+    discount?: number;
+    shipping_time?: string;
+  }> {
     try {
       const payload = {
         items,
         recipient,
       };
 
-      const { data } = await this.client.post<
-        PrintfulApiResponse<any>
-      >("/orders/estimate-costs", payload);
+      const { data } = await this.client.post<PrintfulApiResponse<any>>(
+        "/orders/estimate-costs",
+        payload,
+      );
 
       const result = data.result;
       const costs = result.costs || {};
 
       console.log("[Printful] Order cost estimate:", costs);
 
-      console.log("[Printful] Full estimate response:", JSON.stringify(result, null, 2));
+      console.log(
+        "[Printful] Full estimate response:",
+        JSON.stringify(result, null, 2),
+      );
 
       // Try to get shipping time from result (if available in the response)
-      const shippingTime = result.estimated_delivery?.
-        days || result.shipping_time || 
+      const shippingTime =
+        result.estimated_delivery?.days ||
+        result.shipping_time ||
         `${result.min_delivery_days || 5}-${result.max_delivery_days || 10} business days`;
-console.log("[Printful] Estimated shipping time:", shippingTime);
+      console.log("[Printful] Estimated shipping time:", shippingTime);
       return {
         shipping: costs.shipping || 0,
         tax: costs.tax || 0,
@@ -420,20 +630,24 @@ console.log("[Printful] Estimated shipping time:", shippingTime);
     if (axios.isAxiosError(error)) {
       // Get detailed error info from Printful API response
       const responseData = error.response?.data;
-      let message = error.response?.data?.message || error.message || defaultMessage;
-      
+      let message =
+        error.response?.data?.message || error.message || defaultMessage;
+
       // Include full error details if available
       if (responseData?.errors) {
         message += ` | Details: ${JSON.stringify(responseData.errors)}`;
       }
-      
+
       const status = error.response?.status || 500;
-      
+
       // Log full response for debugging
       if (status === 400) {
-        console.error("Printful 400 Response:", JSON.stringify(responseData, null, 2));
+        console.error(
+          "Printful 400 Response:",
+          JSON.stringify(responseData, null, 2),
+        );
       }
-      
+
       throw new Error(`[Printful API Error - ${status}] ${message}`);
     }
 

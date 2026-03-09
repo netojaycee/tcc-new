@@ -5,6 +5,7 @@ import { generateOtpCode } from "@/lib/utils";
 import { render } from "@react-email/render";
 import OtpEmail from "@/emails/auth/OtpEmail";
 import { sendEmail } from "@/lib/email";
+import { mergeService } from "@/lib/services/merge.service";
 
 
 // Types
@@ -23,6 +24,7 @@ export interface RegisterInput {
   lastName: string;
   email: string;
   password: string;
+  sessionId?: string; // For merging guest cart
 }
 
 export interface LoginInput {
@@ -205,6 +207,19 @@ export const authService = {
           verified: false,
         },
       });
+
+      // Merge guest orders and cart (don't wait for email verification)
+      const mergeResult = await mergeService.mergeAllGuestData(
+        user.id,
+        emailResult.data,
+        input.sessionId,
+      );
+
+      if (mergeResult.success) {
+        console.log(
+          `[Auth] Merged guest data for new user ${user.id}: ${mergeResult.data.mergedOrders} orders, ${mergeResult.data.mergedCartItems} cart items`,
+        );
+      }
 
       // Generate and save OTP
       const otpData = await generateAndSaveOtp(user.id, "email_verification");
@@ -720,6 +735,18 @@ export const authService = {
       const newUser = await prisma.user.create({
         data: createData,
       });
+
+      // Merge guest orders and cart for new Google user
+      const mergeResult = await mergeService.mergeAllGuestData(
+        newUser.id,
+        emailResult.data,
+      );
+
+      if (mergeResult.success) {
+        console.log(
+          `[Auth] Merged guest data for new Google user ${newUser.id}: ${mergeResult.data.mergedOrders} orders, ${mergeResult.data.mergedCartItems} cart items`,
+        );
+      }
 
       const { password, ...userWithoutPassword } = newUser;
 

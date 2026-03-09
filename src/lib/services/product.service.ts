@@ -54,6 +54,23 @@ async function invalidateProductCache(productId?: string) {
   }
 }
 
+/**
+ * Check if a variant is available based on product type
+ * Store products: use availability_status string
+ * Catalog products: use in_stock boolean
+ */
+function isVariantAvailable(variant: any, productType: "store" | "catalog"): boolean {
+  if (productType === "store") {
+    // Store products check string status
+    // Available if status is NOT 'discontinued' or 'out_of_stock'
+    const status = variant.availability_status?.toLowerCase();
+    return status && status !== "discontinued" && status !== "out_of_stock";
+  } else {
+    // Catalog products check boolean flag
+    return variant.in_stock === true || variant.in_stock === "true";
+  }
+}
+
 export const productService = {
   // ============ READ OPERATIONS ============
 
@@ -106,7 +123,9 @@ export const productService = {
     }
 
     // Build where clause for database filters
-    const where: any = {};
+    const where: any = {
+      activeVariantCount: { gt: 0 }, // Only show products with available variants
+    };
     if (type) where.productType = type;
 
     // Price range filtering
@@ -230,7 +249,9 @@ export const productService = {
     offset?: number;
   }): Promise<{ products: any[]; total: number }> {
     const { categoryId, limit = 4, offset = 0 } = filters || {};
-    const where: any = {};
+    const where: any = {
+      activeVariantCount: { gt: 0 }, // Only show products with available variants
+    };
     if (categoryId) where.categoryId = categoryId;
     if (!categoryId) where.productType = "store";
 
@@ -254,12 +275,12 @@ export const productService = {
   async getProductByIdentifier(identifier: string): Promise<any | null> {
     const cacheKey = `product:${identifier}`;
 
-    try {
-      const cached = await redis.get(cacheKey);
-      if (cached) return cached;
-    } catch (error) {
-      console.error("Redis get error:", error);
-    }
+    // try {
+    //   const cached = await redis.get(cacheKey);
+    //   if (cached) return cached;
+    // } catch (error) {
+    //   console.error("Redis get error:", error);
+    // }
 
     const product = await prisma.product.findFirst({
       where: {
@@ -280,6 +301,20 @@ export const productService = {
     });
 
     if (product) {
+      // Filter variants based on product type
+      const variants = (product.variants as any[]) || [];
+      const availableVariants = variants.filter((v) =>
+        isVariantAvailable(v, product.productType as "store" | "catalog")
+      );
+
+      // Only return product if it has available variants
+      if (availableVariants.length === 0) {
+        return null;
+      }
+
+      // Update product with filtered variants
+      product.variants = availableVariants;
+
       try {
         await redis.set(cacheKey, product, { ex: CACHE_TTL });
       } catch (error) {
@@ -413,12 +448,39 @@ export const productService = {
         }
         const d = detail;
         const productData = d.sync_product || d;
-        const variants = d.sync_variants || [];
+        let variants = d.sync_variants || [];
+
+        // Filter to only available variants (store products use availability_status)
+        const availableVariants = variants.filter((v) =>
+          isVariantAvailable(v, "store")
+        );
+        const activeVariantCount = availableVariants.length;
+
+        // Skip products with no available variants
+        if (activeVariantCount === 0) {
+          console.info(
+            `Skipping store product ${pfProduct.id} - no available variants`
+          );
+          continue;
+        }
+
+        variants = availableVariants;
+
         // Use first variant's price as basePrice if available
         let basePrice = 0;
         if (variants.length > 0 && variants[0].retail_price) {
           basePrice = Number(variants[0].retail_price);
         }
+
+        // Collect availability regions for quick reference
+        const availabilityRegions = new Set<string>();
+        variants.forEach((v) => {
+          if (v.availability_regions) {
+            Object.keys(v.availability_regions).forEach((region) => {
+              availabilityRegions.add(region);
+            });
+          }
+        });
 
         // Upsert product by printfulStoreProductId
         const upsertedProduct = await prisma.product.upsert({
@@ -438,6 +500,9 @@ export const productService = {
             syncedAt: new Date(),
             active: !productData.is_ignored,
             basePrice,
+            activeVariantCount,
+            availabilityData: Array.from(availabilityRegions),
+            lastStockSync: new Date(),
           },
           create: {
             printfulStoreProductId: String(pfProduct.id),
@@ -454,6 +519,9 @@ export const productService = {
             syncedAt: new Date(),
             active: !productData.is_ignored,
             basePrice,
+            activeVariantCount,
+            availabilityData: Array.from(availabilityRegions),
+            lastStockSync: new Date(),
           },
         });
         results.push({ product: upsertedProduct });
@@ -462,7 +530,7 @@ export const productService = {
       return {
         success: true,
         data: {
-          message: `Synced ${results.length} Printful store products (with details)`,
+          message: `Synced ${results.length} Printful store products (with details, stock filtered)`,
           results,
         },
       };
@@ -560,8 +628,35 @@ export const productService = {
           continue;
         }
 
+        // Fetch size guide for catalog product
+        let sizeGuideData = null;
+        try {
+          sizeGuideData = await printfulService.getSizeGuide(pfProduct.id);
+        } catch (err) {
+          console.warn(
+            `Could not fetch size guide for product ${pfProduct.id}:`,
+            err,
+          );
+        }
+
         const productData = detail.product;
-        const variants = detail.variants || [];
+        let variants = detail.variants || [];
+
+        // Filter to only available variants (catalog products use in_stock boolean)
+        const availableVariants = variants.filter((v) =>
+          isVariantAvailable(v, "catalog")
+        );
+        const activeVariantCount = availableVariants.length;
+
+        // Skip products with no available variants
+        if (activeVariantCount === 0) {
+          console.info(
+            `Skipping catalog product ${pfProduct.id} - no available variants`
+          );
+          continue;
+        }
+
+        variants = availableVariants;
 
         // Use first variant's price as basePrice if available
         let basePrice = 0;
@@ -598,6 +693,16 @@ export const productService = {
           }
         }
 
+        // Collect availability regions for quick reference
+        const availabilityRegions = new Set<string>();
+        variants.forEach((v) => {
+          if ((v as any).availability_regions) {
+            Object.keys((v as any).availability_regions).forEach((region) => {
+              availabilityRegions.add(region);
+            });
+          }
+        });
+
         // Upsert product by printfulCatalogId
         const upsertedProduct = await prisma.product.upsert({
           where: { printfulCatalogId: pfProduct.id },
@@ -616,6 +721,10 @@ export const productService = {
             active: !productData.is_discontinued,
             basePrice,
             categoryId: category?.id,
+            activeVariantCount,
+            availabilityData: Array.from(availabilityRegions),
+            sizeGuideData: sizeGuideData as any,
+            lastStockSync: new Date(),
           },
           create: {
             printfulCatalogId: productData.id,
@@ -632,6 +741,10 @@ export const productService = {
             active: !productData.is_discontinued,
             basePrice,
             categoryId: category?.id,
+            activeVariantCount,
+            availabilityData: Array.from(availabilityRegions),
+            sizeGuideData: sizeGuideData as any,
+            lastStockSync: new Date(),
           },
         });
         results.push({ product: upsertedProduct, category });
@@ -640,7 +753,7 @@ export const productService = {
       return {
         success: true,
         data: {
-          message: `Synced ${results.length} Printful catalog products (with categories)`,
+          message: `Synced ${results.length} Printful catalog products (with categories, stock filtered)`,
           results,
         },
       };

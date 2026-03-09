@@ -61,7 +61,14 @@ export async function registerAction(input: RegisterInput): Promise<{
   userId?: string;
 }> {
   try {
-    const result = await authService.register(input);
+    // Get sessionId from cookies to merge guest cart
+    const cookieStore = await cookies();
+    const sessionId = cookieStore.get("sessionId")?.value;
+
+    const result = await authService.register({
+      ...input,
+      sessionId,
+    });
 
     if (!result.success) {
       return {
@@ -172,6 +179,27 @@ export async function loginAction(input: LoginInput): Promise<{
     // Create session
     const user = result.data.user;
     await setSessionCookie(user.id, user.role);
+
+    // Merge guest cart after successful login
+    try {
+      const cookieStore = await cookies();
+      const sessionId = cookieStore.get("sessionId")?.value;
+      if (sessionId) {
+        const { mergeService } = await import("@/lib/services/merge.service");
+        const mergeResult = await mergeService.mergeCartBySessionId(
+          user.id,
+          sessionId,
+        );
+        if (mergeResult.success && mergeResult.data.mergedItems > 0) {
+          console.log(
+            `[Auth] Merged ${mergeResult.data.mergedItems} cart items on login for user ${user.id}`,
+          );
+        }
+      }
+    } catch (error) {
+      console.warn("Cart merge on login failed:", error);
+      // Don't fail login just because cart merge failed
+    }
 
     return { success: true };
   } catch (error) {
@@ -437,6 +465,27 @@ export async function googleLoginAction(token: string): Promise<{
     // Create session
     const user = result.data.user;
     await setSessionCookie(user.id, user.role);
+
+    // Merge guest cart after successful Google login
+    try {
+      const cookieStore = await cookies();
+      const sessionId = cookieStore.get("sessionId")?.value;
+      if (sessionId) {
+        const { mergeService } = await import("@/lib/services/merge.service");
+        const mergeResult = await mergeService.mergeCartBySessionId(
+          user.id,
+          sessionId,
+        );
+        if (mergeResult.success && mergeResult.data.mergedItems > 0) {
+          console.log(
+            `[Auth] Merged ${mergeResult.data.mergedItems} cart items on Google login for user ${user.id}`,
+          );
+        }
+      }
+    } catch (error) {
+      console.warn("Cart merge on Google login failed:", error);
+      // Don't fail login just because cart merge failed
+    }
 
     revalidatePath("/");
     redirect("/auth/login");
