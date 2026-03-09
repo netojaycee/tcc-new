@@ -15,8 +15,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
   
-  // Protect /account routes
-  if (request.nextUrl.pathname.startsWith("/accountj") && !currentUser) {
+  // Protect /account-management routes - authenticated users only
+  if (request.nextUrl.pathname.startsWith("/account-management") && !currentUser) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
+  }
+
+  // Protect /orders list page - authenticated users only
+  // Allow /orders/[orderNumber] for external tracking (public accessible)
+  if ((request.nextUrl.pathname === "/orders" || request.nextUrl.pathname === "/orders/") && !currentUser) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
