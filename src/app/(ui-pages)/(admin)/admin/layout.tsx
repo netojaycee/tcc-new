@@ -1,19 +1,33 @@
-"use client"
-import { Providers } from "@/components/providers/providers";
-import { Divide } from "lucide-react";
-import { Toaster } from "sonner";
+"use client";
 
+import { AppAdminSidebar } from "@/components/admin/app-sidebar";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 
-export default function RootLayout({
+export default function AdminLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <div>
-        {/*admin header here */}
-          {children}
-          {/* admin footer here */}
+    <SidebarProvider>
+      <AppAdminSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold">Admin Dashboard</h2>
           </div>
+        </header>
+        <main className="flex-1 overflow-auto">
+          <div className="p-6">{children}</div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

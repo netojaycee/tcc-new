@@ -54,6 +54,19 @@ export default function MobileNavContent({
               </p>
             </div>
             <ul className="">
+              {user.role === "admin" && (
+                <li>
+                  <SheetClose asChild>
+                    <Link
+                      href="/admin"
+                      className="block text-sm font-normal text-gray-800 hover:text-primary transition-colors px-3 py-3 underline"
+                    >
+                      Admin Dashboard{" "}
+                    </Link>
+                  </SheetClose>
+                </li>
+              )}
+
               {accountLinks.map((link) => (
                 <li key={link.href}>
                   <SheetClose asChild>

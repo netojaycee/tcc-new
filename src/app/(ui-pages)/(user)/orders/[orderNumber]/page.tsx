@@ -123,7 +123,11 @@ function getTimelineSteps(
         status: "completed",
         description: "Your order is being prepared",
       },
-      { label: "In Transit", status: "pending", description: "Awaiting pickup" },
+      {
+        label: "In Transit",
+        status: "pending",
+        description: "Awaiting pickup",
+      },
       { label: "Out for Delivery", status: "pending" },
       { label: "Delivered", status: "pending" },
     ],
@@ -208,8 +212,7 @@ function getTimelineSteps(
     ],
   };
 
-  const steps =
-    printfulStatusMap[currentStatus] ||
+  const steps = printfulStatusMap[currentStatus] ||
     printfulStatusMap[status] || [
       { label: "Order Confirmed", status: "completed" as const },
       { label: "Processing", status: "pending" as const },
@@ -296,7 +299,10 @@ export default function OrderDetailsPage() {
   const statusConfig: Record<string, { label: string; color: string }> = {
     // Local statuses
     draft: { label: "Draft", color: "bg-gray-100 text-gray-800" },
-    pending: { label: "Pending Payment", color: "bg-yellow-100 text-yellow-800" },
+    pending: {
+      label: "Pending Payment",
+      color: "bg-yellow-100 text-yellow-800",
+    },
     paid: { label: "Paid", color: "bg-blue-100 text-blue-800" },
     processing: { label: "Processing", color: "bg-blue-100 text-blue-800" },
     shipped: { label: "Shipped", color: "bg-orange-100 text-orange-800" },
@@ -401,10 +407,10 @@ export default function OrderDetailsPage() {
                         <h3 className="font-semibold text-sm text-gray-900">
                           {item.product.name}
                         </h3>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {order.currency.toUpperCase()}{" "}
-                          {item.price.toFixed(2)}
-                        </p>
+                        {/* <p className="text-sm text-gray-600 mt-1">
+                            {order.currency.toUpperCase()}{" "}
+                            {item.price.toFixed(2)}
+                          </p> */}
                       </div>
                       <p className="text-sm font-medium text-gray-600">
                         Quantity: {item.quantity}
@@ -442,8 +448,7 @@ export default function OrderDetailsPage() {
                 <div className="flex justify-between text-gray-600">
                   <span>Tax</span>
                   <span>
-                    {order.currency.toUpperCase()}{" "}
-                    {order.costs.tax.toFixed(2)}
+                    {order.currency.toUpperCase()} {order.costs.tax.toFixed(2)}
                   </span>
                 </div>
                 <div className="border-t pt-2 flex justify-between font-semibold text-gray-900">

@@ -51,6 +51,7 @@ export default async function AllProductsPage({
   const products = res.success ? (res.data ?? []) : [];
   const total = res.total ?? 0;
   const pageCount = Math.ceil(total / limit);
+  // console.log(products)
 
   return (
     <div className="px-4 py-4 lg:px-16 md:py-8">

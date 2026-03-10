@@ -1,28 +1,37 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { updateSession } from "@/lib/auth";
+import { getSession, updateSession } from "@/lib/auth";
 
 export async function proxy(request: NextRequest) {
-
   // Update session expiration if session exists
-  const response = await updateSession(request);
-  if (response) return response;
+  const response = await getSession();
+  const currentUser = response && "userId" in response ? response : null;
+  const userRole = currentUser && currentUser?.role;
 
-  const currentUser = request.cookies.get(process.env.SESSION_COOKIE_NAME!)?.value;
-  
+  console.log(currentUser)
+
+  // const currentUser = request.cookies.get(process.env.SESSION_COOKIE_NAME!)?.value;
+
   // Protect /admin routes (example) - can expand logic here
-  if (request.nextUrl.pathname.startsWith("/admin") && !currentUser) {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+  if (request.nextUrl.pathname.startsWith("/admin") && userRole !== "admin") {
+    return NextResponse.redirect(new URL("/", request.url));
   }
-  
+
   // Protect /account-management routes - authenticated users only
-  if (request.nextUrl.pathname.startsWith("/account-management") && !currentUser) {
+  if (
+    request.nextUrl.pathname.startsWith("/account-management") &&
+    !currentUser
+  ) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
   // Protect /orders list page - authenticated users only
   // Allow /orders/[orderNumber] for external tracking (public accessible)
-  if ((request.nextUrl.pathname === "/orders" || request.nextUrl.pathname === "/orders/") && !currentUser) {
+  if (
+    (request.nextUrl.pathname === "/orders" ||
+      request.nextUrl.pathname === "/orders/") &&
+    !currentUser
+  ) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
@@ -38,6 +47,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };
